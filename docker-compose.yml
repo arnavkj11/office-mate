@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15
+    container_name: office-mate-db
+    environment:
+      POSTGRES_DB: officemate
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - office-mate-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: office-mate-backend
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/officemate
+      - DEBUG=True
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+    networks:
+      - office-mate-network
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: office-mate-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - office-mate-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  office-mate-network:
+    driver: bridge
