@@ -1,0 +1,99 @@
+:root{
+  --sidebar-w: 240px;
+  --sidebar-w-collapsed: 78px;
+  --border: rgba(0,0,0,0.08);
+  --bg: #fff;
+  --muted: #64748b;
+  --text: #0f172a;
+}
+
+/* overall frame */
+.app-shell { background: var(--bg); }
+
+/* body row under the top navbar */
+.app-body{
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 0;
+}
+
+/* main area */
+.app-main{
+  min-height: calc(100dvh - 78px); /* same top-pad as your navbar */
+  background: #fafbff;
+  border-left: 1px solid var(--border);
+}
+.app-main.is-collapsed{
+  /* when sidebar collapses, the grid column is already reduced via inline width,
+     so we don't need padding hacks here */
+}
+
+.app-main-inner{
+  padding: 18px clamp(16px, 3vw, 28px);
+}
+
+/* ---------- Sidebar base (compatible with your component) ---------- */
+.sidebar{
+  position: sticky;
+  top: 0;  /* sits below fixed navbar because body has padding-top */
+  height: calc(100dvh - 78px);
+  background: #fff;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .brand{
+  display:flex; align-items:center; gap:10px;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar .brand img{
+  width: 34px; height: 34px; border-radius: 8px; object-fit: contain;
+}
+
+.sidebar .nav{
+  display:flex; flex-direction:column; gap:4px;
+  padding: 12px 8px;
+}
+.sidebar .nav a{
+  display:flex; align-items:center; gap:10px;
+  text-decoration:none; color: var(--text);
+  padding: 10px 10px; border-radius: 10px; font-weight:600;
+}
+.sidebar .nav a:hover{ background: rgba(0,0,0,0.04); }
+.sidebar .nav a.active{ background: #edf2ff; color:#1f49e7; }
+.sidebar .nav .item-label{ font-size: 14px; }
+
+.sidebar .collapse-btn{
+  margin: auto 10px 12px;
+  background:#fff; border:1px solid var(--border);
+  border-radius: 10px; padding: 8px 10px; cursor:pointer; font-weight:700;
+}
+
+/* collapsed state */
+.sidebar.collapsed .brand div { display:none; }
+.sidebar.collapsed .item-label { display:none; }
+.sidebar.collapsed .nav a { justify-content: center; }
+.sidebar.collapsed { width: var(--sidebar-w-collapsed) !important; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1080px){
+  .app-body{
+    grid-template-columns: var(--sidebar-w-collapsed) 1fr;
+  }
+}
+
+@media (max-width: 880px){
+  .sidebar{
+    position: fixed;
+    top: 78px; left: 0; bottom: 0;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+    width: var(--sidebar-w);
+    z-index: 55;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .app-body{ grid-template-columns: 1fr; }
+  .app-main{ border-left: none; }
+}

@@ -1,35 +1,61 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import NavBar from "./components/NavBar";
+import Footer from "./components/Footer";
 
-function App() {
-  const [count, setCount] = useState(0)
+import Landing from "./pages/Landing";
+import About from "./pages/navbar/About";
+import Contact from "./pages/navbar/Contact";
+import Auth from "./pages/navbar/Auth";
 
+import AppLayout from "./layouts/AppLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+import Dashboard from "./pages/app/Dashboard";
+import Appointments from "./pages/app/Appointments";
+import Assistant from "./pages/app/Assistant";
+import Notes from "./pages/app/Notes";
+import Settings from "./pages/app/Settings";
+
+export default function App() {
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+      {/* Public pages that still show the top navbar */}
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
 
-export default App
+        {/* Auth page */}
+        <Route path="/auth" element={<Auth />} />
+
+        {/* Protected App */}
+        <Route
+          path="/app/*"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Routes>
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="appointments" element={<Appointments />} />
+                  <Route path="assistant" element={<Assistant />} />
+                  <Route path="notes" element={<Notes />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="*" element={<Navigate to="dashboard" replace />} />
+                </Routes>
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {/* Keep Footer only on public pages if you prefer.
+         Remove this <Footer /> if you don't want it app-wide. */}
+      <Footer />
+    </>
+  );
+}
