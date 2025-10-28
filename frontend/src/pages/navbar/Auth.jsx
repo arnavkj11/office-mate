@@ -6,6 +6,7 @@ import {
   resendSignUpCode, resetPassword, confirmResetPassword,
   fetchAuthSession, getCurrentUser
 } from 'aws-amplify/auth';
+import { api } from '../../api/client';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -30,12 +31,7 @@ function Field({ label, type="text", value, onChange, id, error, autoComplete, a
           aria-describedby={error ? `${id}-err` : undefined}
         />
         {isPassword && (
-          <button
-            type="button"
-            className="om-eye"
-            onClick={() => setShow(s => !s)}
-            aria-label={show ? "Hide password" : "Show password"}
-          >
+          <button type="button" className="om-eye" onClick={() => setShow(s => !s)} aria-label={show ? "Hide password" : "Show password"}>
             {show ? "🙈" : "👁️"}
           </button>
         )}
@@ -48,17 +44,29 @@ function Field({ label, type="text", value, onChange, id, error, autoComplete, a
 export default function Auth() {
   const nav = useNavigate();
 
-  // redirect away if already signed in
+  async function postAuthRedirect() {
+    try {
+      const me = await api.me(); // { hasProfile, userId, profile? }
+      if (me?.hasProfile) {
+        nav('/app', { replace: true });
+      } else {
+        nav('/onboarding', { replace: true });
+      }
+    } catch {
+      nav('/onboarding', { replace: true });
+    }
+  }
+
   useEffect(() => {
     (async () => {
       try {
         const { tokens } = await fetchAuthSession();
-        if (tokens?.accessToken) nav('/app', { replace: true });
-      } catch {/* not signed in */}
+        if (tokens?.accessToken) await postAuthRedirect();
+      } catch {}
     })();
-  }, [nav]);
+  }, []);
 
-  const [mode, setMode] = useState('signin'); // signin | signup | confirm | forgot | forgotConfirm
+  const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
   const [code, setCode] = useState('');
@@ -69,27 +77,15 @@ export default function Auth() {
   const canEmail = useMemo(() => emailRegex.test(email), [email]);
   const canPwd   = useMemo(() => pwd.length >= 8, [pwd]);
 
-  function go(next) {
-    setErr('');
-    setMsg('');
-    setMode(next);
-  }
-
-  async function safe(fn) {
-    setBusy(true); setErr(''); setMsg('');
-    try { await fn(); }
-    catch (e) { setErr(e?.message || 'Request failed'); }
-    finally { setBusy(false); }
-  }
+  function go(next) { setErr(''); setMsg(''); setMode(next); }
+  async function safe(fn) { setBusy(true); setErr(''); setMsg(''); try { await fn(); } catch (e) { setErr(e?.message || 'Request failed'); } finally { setBusy(false); } }
 
   async function doSignIn(e) {
     e.preventDefault();
     if (!canEmail || !canPwd) { setErr('Enter a valid email and password (min 8 chars).'); return; }
     await safe(async () => {
       await signIn({ username: email, password: pwd });
-      const { tokens } = await fetchAuthSession();
-      if (tokens?.accessToken) { nav('/app', { replace: true }); return; }
-      setMsg('Signed in.');
+      await postAuthRedirect();
     });
   }
 
@@ -108,9 +104,8 @@ export default function Auth() {
     if (!canEmail || code.trim().length < 4) { setErr('Enter email and the verification code.'); return; }
     await safe(async () => {
       await confirmSignUp({ username: email, confirmationCode: code.trim() });
-      // after confirm, go to sign-in
-      setMsg('Email confirmed. Sign in.');
-      setMode('signin');
+      await signIn({ username: email, password: pwd });
+      await postAuthRedirect();
     });
   }
 
@@ -136,12 +131,8 @@ export default function Auth() {
     if (!canEmail || !canPwd || code.trim().length < 4) { setErr('Fill all fields correctly.'); return; }
     await safe(async () => {
       await confirmResetPassword({ username: email, confirmationCode: code.trim(), newPassword: pwd });
-      // after reset, sign the user in automatically
       await signIn({ username: email, password: pwd });
-      const { tokens } = await fetchAuthSession();
-      if (tokens?.accessToken) { nav('/app', { replace: true }); return; }
-      setMsg('Password updated. Sign in.');
-      setMode('signin');
+      await postAuthRedirect();
     });
   }
 
@@ -154,10 +145,7 @@ export default function Auth() {
   }
 
   async function doSignOut() {
-    await safe(async () => {
-      await signOut();
-      setMsg('Signed out.');
-    });
+    await safe(async () => { await signOut(); setMsg('Signed out.'); });
   }
 
   return (
@@ -211,7 +199,7 @@ export default function Auth() {
             <Field id="email" label="Email" value={email} onChange={setEmail} autoComplete="email" autoFocus />
             <Field id="code" label="Verification code" value={code} onChange={setCode} autoComplete="one-time-code" />
             <button className="om-btn" type="submit" disabled={busy || !email || !code}>
-              {busy ? 'Confirming…' : 'Confirm'}
+              {busy ? 'Confirming…' : 'Confirm & continue'}
             </button>
             <div className="om-links">
               <button type="button" className="om-link" onClick={doResend}>Resend code</button>

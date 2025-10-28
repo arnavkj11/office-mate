@@ -1,14 +1,13 @@
 import os
 import httpx
 from functools import lru_cache
-from jose import jwt, JWTError
-from fastapi import HTTPException, status
 from typing import Optional, List
+from fastapi import HTTPException, status, Header, Depends
+from jose import jwt, JWTError
 
 REGION = os.getenv("COG_REGION")
 POOL = os.getenv("COG_USER_POOL_ID")
 CLIENT = os.getenv("COG_CLIENT_ID")
-
 if not (REGION and POOL and CLIENT):
     raise RuntimeError("Missing env: COG_REGION / COG_USER_POOL_ID / COG_CLIENT_ID")
 
@@ -22,16 +21,13 @@ class AuthError(HTTPException):
 
 @lru_cache(maxsize=1)
 def get_jwks():
-    try:
-        with httpx.Client(timeout=5.0) as c:
-            r = c.get(JWKS_URL)
-            r.raise_for_status()
-            data = r.json()
-            if not isinstance(data.get("keys"), list):
-                raise RuntimeError("JWKS payload invalid")
-            return data
-    except Exception as e:
-        raise RuntimeError(f"Failed to fetch JWKS: {e}")
+    with httpx.Client(timeout=5.0) as c:
+        r = c.get(JWKS_URL)
+        r.raise_for_status()
+        data = r.json()
+        if not isinstance(data.get("keys"), list):
+            raise RuntimeError("JWKS payload invalid")
+        return data
 
 def _find_key(kid: str):
     for k in get_jwks()["keys"]:
@@ -73,7 +69,7 @@ def verify_access_token(access_token: str, required_scopes: Optional[List[str]] 
             },
         )
         if claims.get("token_use") != "access":
-            raise AuthError("Wrong token_use (expected 'access')")
+            raise AuthError("Wrong token_use")
         _require_scopes(claims.get("scope"), required_scopes)
         return claims
     except AuthError:
@@ -82,3 +78,25 @@ def verify_access_token(access_token: str, required_scopes: Optional[List[str]] 
         raise AuthError("Invalid or expired token")
     except Exception as e:
         raise AuthError(f"Token verification error: {e}")
+
+def _parse_bearer(authorization: Optional[str]) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise AuthError("Missing Authorization header")
+    return authorization.split(" ", 1)[1].strip()
+
+class AuthUser:
+    def __init__(self, sub: str, username: Optional[str], scope: str):
+        self.sub = sub
+        self.username = username
+        self.scope = scope
+
+async def get_current_user(
+    authorization: str = Header(None),
+    required_scopes: Optional[List[str]] = None,
+) -> AuthUser:
+    token = _parse_bearer(authorization)
+    claims = verify_access_token(token, required_scopes)
+    sub = claims.get("sub")
+    if not sub:
+        raise AuthError("Missing sub")
+    return AuthUser(sub=sub, username=claims.get("username"), scope=claims.get("scope", ""))

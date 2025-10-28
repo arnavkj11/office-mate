@@ -12,24 +12,31 @@ import AppLayout from "./layouts/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import Dashboard from "./pages/app/Dashboard";
-import Appointments from "./pages/app/Appointments";
+import Appointments from "./pages/app/appointments/Appointments";
 import Assistant from "./pages/app/Assistant";
 import Notes from "./pages/app/Notes";
 import Settings from "./pages/app/Settings";
+import Onboarding from "./pages/Onboarding";
 
 export default function App() {
   return (
     <>
-      {/* Public pages that still show the top navbar */}
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
-
-        {/* Auth page */}
         <Route path="/auth" element={<Auth />} />
 
-        {/* Protected App */}
+        {/* Onboarding must be signed in */}
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/app/*"
           element={
@@ -48,13 +55,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-
-      {/* Keep Footer only on public pages if you prefer.
-         Remove this <Footer /> if you don't want it app-wide. */}
       <Footer />
     </>
   );
