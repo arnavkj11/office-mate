@@ -13,7 +13,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import Dashboard from "./pages/app/Dashboard";
 import Appointments from "./pages/app/appointments/Appointments";
-import Assistant from "./pages/app/Assistant";
+import Assistant from "./pages/app/assistant/Assistant";
 import Notes from "./pages/app/Notes";
 import Settings from "./pages/app/Settings";
 import Onboarding from "./pages/Onboarding";
