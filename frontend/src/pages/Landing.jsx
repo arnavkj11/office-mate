@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchAuthSession, signOut } from "aws-amplify/auth";
+import { signOut } from "aws-amplify/auth";
+
+import { useAuthStatus } from "../lib/useAuthStatus";
 
 import NavBar from "../components/NavBar";
 import Hero from "../components/landing/hero";
@@ -12,24 +14,13 @@ import "../components/landing/landing.css";
 
 export default function Landing() {
   const nav = useNavigate();
-  const [authed, setAuthed] = useState(false);
-  const [checking, setChecking] = useState(true);
+
+  // single source of truth for auth
+  const { checking, authed } = useAuthStatus();
+
   const [theme, setTheme] = useState(
     () => window.localStorage.getItem("om-theme") || "light"
   );
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const { tokens } = await fetchAuthSession();
-        setAuthed(!!tokens?.accessToken);
-      } catch {
-        setAuthed(false);
-      } finally {
-        setChecking(false);
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     window.localStorage.setItem("om-theme", theme);
@@ -39,18 +30,13 @@ export default function Landing() {
     setTheme((t) => (t === "light" ? "dark" : "light"));
   };
 
-  const onGetStarted = async () => {
-    try {
-      const { tokens } = await fetchAuthSession();
-      nav(tokens?.accessToken ? "/app" : "/auth");
-    } catch {
-      nav("/auth");
-    }
+  const onGetStarted = () => {
+    if (checking) return;              // avoid decisions while still loading
+    nav(authed ? "/app" : "/auth");
   };
 
   const onSignOut = async () => {
     await signOut();
-    setAuthed(false);
     nav("/", { replace: true });
   };
 
@@ -66,12 +52,15 @@ export default function Landing() {
         checking={checking}
         authed={authed}
         onGetStarted={onGetStarted}
-        onSignOut={onSignOut}
       />
 
       <Features />
 
-      <CTA checking={checking} authed={authed} onGetStarted={onGetStarted} />
+      <CTA
+        checking={checking}
+        authed={authed}
+        onGetStarted={onGetStarted}
+      />
     </div>
   );
 }

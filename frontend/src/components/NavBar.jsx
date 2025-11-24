@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useAuthStatus } from "../lib/useAuthStatus";
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [lastY, setLastY] = useState(0);
+
+  const nav = useNavigate();
+  const { checking, authed } = useAuthStatus();
 
   useEffect(() => {
     const onScroll = () => {
@@ -28,6 +32,15 @@ export default function NavBar() {
     };
   }, []);
 
+  const handlePrimaryClick = () => {
+    setOpen(false);
+    if (authed) {
+      nav("/app");
+    } else {
+      nav("/auth");
+    }
+  };
+
   return (
     <header className={`nav ${hidden ? "hide" : ""}`}>
       <div className="nav-inner">
@@ -36,10 +49,36 @@ export default function NavBar() {
         </Link>
 
         <nav className="nav-links">
-          <NavLink to="/about" className={({isActive}) => `nav-link ${isActive ? "active" : ""}`}>About</NavLink>
-          <NavLink to="/contact" className={({isActive}) => `nav-link ${isActive ? "active" : ""}`}>Contact</NavLink>
-          <NavLink to="/features/dashboard" className={({isActive}) => `nav-link ${isActive ? "active" : ""}`}>Dashboard</NavLink>
-          <NavLink to="/auth" className="nav-cta">Sign up / Login</NavLink>
+          <NavLink
+            to="/about"
+            className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+          >
+            About
+          </NavLink>
+          <NavLink
+            to="/contact"
+            className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+          >
+            Contact
+          </NavLink>
+          {/* if you actually want in-app dashboard, point to /app/dashboard */}
+          <NavLink
+            to="/app/dashboard"
+            className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+          >
+            Dashboard
+          </NavLink>
+
+          {/* Primary CTA: route depends on auth state */}
+          {!checking && (
+            <button
+              type="button"
+              className="nav-cta"
+              onClick={handlePrimaryClick}
+            >
+              {authed ? "Go to app" : "Sign up / Login"}
+            </button>
+          )}
         </nav>
 
         <button
@@ -53,10 +92,38 @@ export default function NavBar() {
       </div>
 
       <div className={`nav-drop ${open ? "open" : ""}`}>
-        <NavLink to="/about" className="nav-drop-link" onClick={() => setOpen(false)}>About</NavLink>
-        <NavLink to="/contact" className="nav-drop-link" onClick={() => setOpen(false)}>Contact</NavLink>
-        <NavLink to="/features/dashboard" className="nav-drop-link" onClick={() => setOpen(false)}>Dashboard</NavLink>
-        <NavLink to="/auth" className="nav-drop-cta" onClick={() => setOpen(false)}>Sign up / Login</NavLink>
+        <NavLink
+          to="/about"
+          className="nav-drop-link"
+          onClick={() => setOpen(false)}
+        >
+          About
+        </NavLink>
+        <NavLink
+          to="/contact"
+          className="nav-drop-link"
+          onClick={() => setOpen(false)}
+        >
+          Contact
+        </NavLink>
+        <NavLink
+          to="/app/dashboard"
+          className="nav-drop-link"
+          onClick={() => setOpen(false)}
+        >
+          Dashboard
+        </NavLink>
+
+        {/* Mobile CTA with same auth-aware behavior */}
+        {!checking && (
+          <button
+            type="button"
+            className="nav-drop-cta"
+            onClick={handlePrimaryClick}
+          >
+            {authed ? "Go to app" : "Sign up / Login"}
+          </button>
+        )}
       </div>
 
       <style>{`
@@ -81,13 +148,12 @@ export default function NavBar() {
           box-sizing: border-box;
         }
 
-        /* Logo — bigger but doesn’t expand navbar height */
         .nav-logo {
-          width: 110px;      /* bigger image */
+          width: 110px;
           height: 110px;
           object-fit: contain;
           border-radius: 14px;
-          transform: translateY(8px); /* pushes it slightly DOWN for alignment */
+          transform: translateY(8px);
         }
 
         .nav-links {
@@ -117,6 +183,8 @@ export default function NavBar() {
           font-weight: 600;
           font-size: 15px;
           text-decoration: none;
+          border: none;
+          cursor: pointer;
         }
 
         .nav-burger {
@@ -168,7 +236,9 @@ export default function NavBar() {
           padding: 10px 16px;
           border-radius: 10px;
           font-weight: 600;
-          text-decoration: none;
+          border: none;
+          width: 100%;
+          cursor: pointer;
         }
 
         @media (max-width: 900px) {

@@ -7,7 +7,6 @@ export default function Hero({
   checking,
   authed,
   onGetStarted,
-  onSignOut,
 }) {
   return (
     <section className="om-hero">
@@ -40,7 +39,7 @@ export default function Hero({
                 <button
                   type="button"
                   className="om-btn om-btn-primary"
-                  onClick={onSignOut}
+                  onClick={onGetStarted}
                 >
                   Go to workspace
                 </button>
