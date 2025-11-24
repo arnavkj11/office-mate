@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./assistant.css"; // import your stylesheet
+import "./assistant.css";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -34,7 +34,7 @@ export default function Assistant() {
         { role: "assistant", content: data.output ?? "(no response)" },
       ]);
     } catch (err) {
-      setError("Assistant not responding");
+      setError("Assistant not responding. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -49,49 +49,104 @@ export default function Assistant() {
 
   return (
     <div className="assistant-container">
-      <h1 className="assistant-title">OfficeMate Assistant</h1>
+      <header className="assistant-header">
+        <div>
+          <h1 className="assistant-title">OfficeMate Assistant</h1>
+          <p className="assistant-subtitle">
+            Ask in plain language to schedule, summarize, and automate work.
+          </p>
+        </div>
+        <div className="assistant-status">
+          <span
+            className={
+              "assistant-status-dot " + (loading ? "assistant-busy" : "assistant-idle")
+            }
+          />
+          <span className="assistant-status-text">
+            {loading ? "Thinking" : "Ready"}
+          </span>
+        </div>
+      </header>
 
-      <div className="chat-box">
-        {messages.length === 0 && (
-          <div className="empty-state">Start typing to talk to your assistant.</div>
-        )}
+      <section className="assistant-panel">
+        <div className="assistant-chat">
+          {messages.length === 0 && !loading && (
+            <div className="assistant-empty">
+              <h3>Start a conversation</h3>
+              <p>
+                Try prompts like{" "}
+                <span className="assistant-chip">
+                  "Create a follow-up email for my 3 PM client"
+                </span>{" "}
+                or{" "}
+                <span className="assistant-chip">
+                  "Summarize this week&apos;s appointments"
+                </span>
+                .
+              </p>
+            </div>
+          )}
 
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`message ${msg.role === "user" ? "user" : "assistant"}`}
-          >
-            <strong>{msg.role === "user" ? "You: " : "Assistant: "}</strong>
-            {msg.content}
-          </div>
-        ))}
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={
+                "assistant-message-row " +
+                (msg.role === "user" ? "assistant-user" : "assistant-assistant")
+              }
+            >
+              {msg.role === "assistant" && (
+                <div className="assistant-avatar">OM</div>
+              )}
+              <div className="assistant-bubble">
+                <div className="assistant-bubble-label">
+                  {msg.role === "user" ? "You" : "Assistant"}
+                </div>
+                <div className="assistant-bubble-text">{msg.content}</div>
+              </div>
+            </div>
+          ))}
 
-        {loading && (
-          <div className="message assistant">
-            <strong>Assistant: </strong>Thinking…
-          </div>
-        )}
-      </div>
+          {loading && (
+            <div className="assistant-message-row assistant-assistant">
+              <div className="assistant-avatar">OM</div>
+              <div className="assistant-bubble">
+                <div className="assistant-bubble-label">Assistant</div>
+                <div className="assistant-bubble-text">Thinking…</div>
+              </div>
+            </div>
+          )}
+        </div>
 
-      {error && <div className="error-msg">{error}</div>}
+        {error && <div className="assistant-error">{error}</div>}
 
-      <div className="input-row">
-        <textarea
-          className="input-area"
-          placeholder="Ask something..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-
-        <button
-          className="send-btn"
-          onClick={handleSend}
-          disabled={loading || !input.trim()}
+        <form
+          className="assistant-input-row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
         >
-          {loading ? "Sending..." : "Send"}
-        </button>
-      </div>
+          <textarea
+            className="assistant-input"
+            placeholder="Ask something about your day, clients, or notes…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <button
+            type="submit"
+            className="assistant-send"
+            disabled={loading || !input.trim()}
+          >
+            {loading ? "Sending…" : "Send"}
+          </button>
+        </form>
+
+        <p className="assistant-hint">
+          Press Enter to send, Shift + Enter for a new line.
+        </p>
+      </section>
     </div>
   );
 }

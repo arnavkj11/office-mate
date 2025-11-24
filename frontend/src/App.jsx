@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import NavBar from "./components/NavBar";
+
 import Footer from "./components/Footer";
 
 import Landing from "./pages/Landing";
@@ -22,12 +22,13 @@ export default function App() {
   return (
     <>
       <Routes>
+        {/* Public site */}
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/auth" element={<Auth />} />
 
-        {/* Onboarding must be signed in */}
+        {/* Onboarding */}
         <Route
           path="/onboarding"
           element={
@@ -37,26 +38,28 @@ export default function App() {
           }
         />
 
+        {/* Authenticated app area */}
         <Route
-          path="/app/*"
+          path="/app"
           element={
             <ProtectedRoute>
-              <AppLayout>
-                <Routes>
-                  <Route index element={<Navigate to="dashboard" replace />} />
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="appointments" element={<Appointments />} />
-                  <Route path="assistant" element={<Assistant />} />
-                  <Route path="notes" element={<Notes />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="*" element={<Navigate to="dashboard" replace />} />
-                </Routes>
-              </AppLayout>
+              <AppLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="appointments" element={<Appointments />} />
+          <Route path="assistant" element={<Assistant />} />
+          <Route path="notes" element={<Notes />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="dashboard" replace />} />
+        </Route>
+
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
       <Footer />
     </>
   );
