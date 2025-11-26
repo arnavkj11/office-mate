@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
 import os
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,15 +12,12 @@ from .auth_cognito import verify_access_token
 from .routes_users import router as users_router
 from .settings import FRONTEND_ORIGINS, PORT
 
-# --- OpenAI setup ---
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
 class AgentPrompt(BaseModel):
     message: str
-
 
 app = FastAPI(title="OfficeMate API")
 
@@ -33,13 +35,10 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
-
 @app.get("/health")
 def health():
     return {"ok": True}
 
-
-# --- New agent route ---
 @app.post("/agent/run")
 async def agent_run(payload: AgentPrompt):
     try:
@@ -47,20 +46,15 @@ async def agent_run(payload: AgentPrompt):
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": payload.message}],
         )
-        content = resp.choices[0].message.content
-        return {"output": content}
+        return {"output": resp.choices[0].message.content}
     except Exception as e:
-        # log if you want: print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Agent error",
         )
 
-
-# include all user-related routes under /api/users
 app.include_router(users_router)
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("app.main:app", host="0.0.0.0", port=PORT, reload=True)
