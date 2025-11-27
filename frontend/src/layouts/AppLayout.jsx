@@ -10,16 +10,14 @@ export default function AppLayout() {
   return (
     <div className={`app-shell ${collapsed ? "is-collapsed" : ""}`}>
       <NavBar />
-
       <div className="app-body">
         <Sidebar
           collapsed={collapsed}
           onToggle={() => setCollapsed((v) => !v)}
         />
-
         <main className="app-main">
           <div className="app-main-inner">
-            <Outlet />  
+            <Outlet />
           </div>
         </main>
       </div>

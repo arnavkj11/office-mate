@@ -8,9 +8,10 @@ export default function CalendarView() {
   const [value, setValue] = useState(new Date());
   const navigate = useNavigate();
 
-  const onDay = (d) => {
+  const onDayClick = (d) => {
     setValue(d);
-    navigate(`/app/appointments/calendar/day?date=${format(d, "yyyy-MM-dd")}`);
+    const dateStr = format(d, "yyyy-MM-dd");
+    navigate(`/app/appointments/calendar/day?date=${dateStr}`);
   };
 
   return (
@@ -18,10 +19,17 @@ export default function CalendarView() {
       <div className="cal-toolbar">
         <div className="cal-title">Calendar</div>
         <div className="spacer" />
-        <button className="btn btn-ghost" onClick={() => setValue(new Date())}>Today</button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => setValue(new Date())}
+        >
+          Today
+        </button>
       </div>
+
       <div className="cal-surface">
-        <Calendar value={value} onClickDay={onDay} />
+        <Calendar value={value} onClickDay={onDayClick} />
       </div>
     </div>
   );

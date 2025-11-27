@@ -49,7 +49,10 @@ export default function App() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="appointments" element={<Appointments />} />
+
+          {/* IMPORTANT: allow nested appointment routes */}
+          <Route path="appointments/*" element={<Appointments />} />
+
           <Route path="assistant" element={<Assistant />} />
           <Route path="notes" element={<Notes />} />
           <Route path="settings" element={<Settings />} />
