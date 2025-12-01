@@ -6,6 +6,7 @@ import {
   startOfDay,
   endOfDay,
 } from "date-fns";
+import { api } from "../api/client";
 
 export default function AppointmentList() {
   const [q, setQ] = useState("");
@@ -15,10 +16,17 @@ export default function AppointmentList() {
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
-    // TODO: replace with real API call
-    // setRows(await api.get("/appointments"));
-    setRows([]);
+    async function load() {
+      try {
+        const res = await api.get("/appointments"); // res is { items: [...] }
+        setRows(res.items || []);
+      } catch (err) {
+        setRows([]);
+      }
+    }
+    load();
   }, []);
+
 
   const filtered = useMemo(() => {
     const from = range.from ? new Date(range.from) : null;
@@ -26,10 +34,8 @@ export default function AppointmentList() {
 
     let out = rows.filter((r) => {
       const hit = q
-        ? (r.title || "")
-            .toLowerCase()
-            .includes(q.toLowerCase()) ||
-          (r.email || "").toLowerCase().includes(q.toLowerCase())
+        ? (r.title || "").toLowerCase().includes(q.toLowerCase()) ||
+          (r.inviteeEmail || "").toLowerCase().includes(q.toLowerCase())
         : true;
 
       const dt = r.startTime || r.date;
@@ -107,7 +113,9 @@ export default function AppointmentList() {
               className="inp"
               type="date"
               value={range.to}
-              onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
+              onChange={(e) =>
+                setRange((r) => ({ ...r, to: e.target.value }))
+              }
             />
           </div>
         </div>
@@ -155,7 +163,7 @@ export default function AppointmentList() {
               const status = r.status || "pending";
 
               return (
-                <div className="tr" key={r.id}>
+                <div className="tr" key={r.appointmentId}>
                   <div className="td">{dateLabel}</div>
                   <div className="td">{timeLabel}</div>
                   <div className="td">
@@ -165,9 +173,11 @@ export default function AppointmentList() {
                     )}
                   </div>
                   <div className="td">
-                    <div className="cell-title">{r.name || r.email || "—"}</div>
-                    {r.email && (
-                      <div className="cell-sub">{r.email}</div>
+                    <div className="cell-title">
+                      {r.inviteeEmail || "—"}
+                    </div>
+                    {r.location && (
+                      <div className="cell-sub">{r.location}</div>
                     )}
                   </div>
                   <div className="td">

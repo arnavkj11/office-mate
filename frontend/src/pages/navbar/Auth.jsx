@@ -72,8 +72,9 @@ export default function Auth() {
 
   async function postAuthRedirect() {
     try {
-      const me = await api.me(); // { hasProfile, userId, profile? }
-      if (me?.hasProfile) {
+      const me = await api.me();
+      const hasProfile = me?.hasProfile ?? !!me?.defaultBusinessId;
+      if (hasProfile) {
         nav("/app", { replace: true });
       } else {
         nav("/onboarding", { replace: true });
@@ -182,6 +183,7 @@ export default function Auth() {
     await safe(async () => {
       await resetPassword({ username: email });
       setMsg("Reset code sent to your email.");
+      setMode("forgot");
       setMode("forgotConfirm");
     });
   }

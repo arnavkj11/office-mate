@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { api } from "../api/client"; // match your other imports
+import { api } from "../api/client";
 
 export default function AppointmentForm({ onCreated }) {
   const [form, setForm] = useState({
@@ -25,14 +25,15 @@ export default function AppointmentForm({ onCreated }) {
     setErr("");
 
     try {
-      // shape this to match your FastAPI / DynamoDB model
       await api.post("/appointments", {
-        title: form.title.trim(),
-        email: form.inviteeEmail.trim(),
-        start_time: form.startTime,
-        end_time: form.endTime,
-        location: form.location.trim(),
-        notes: form.notes.trim(),
+        payload: {           
+          title: form.title.trim(),
+          email: form.inviteeEmail.trim(),
+          start_time: form.startTime,
+          end_time: form.endTime,
+          location: form.location.trim(),
+          notes: form.notes.trim(),
+        },
       });
 
       setForm({
@@ -62,7 +63,7 @@ export default function AppointmentForm({ onCreated }) {
         <div>
           <h2 className="appts-form-title">New appointment</h2>
           <p className="appts-form-sub">
-            Set a title, guests and time. We will handle the rest.
+            Set a title, guests and time. Notifications and logs are handled for you.
           </p>
         </div>
       </div>

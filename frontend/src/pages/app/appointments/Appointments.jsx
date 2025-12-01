@@ -18,8 +18,13 @@ export default function Appointments() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const isList = pathname === "/app/appointments";
+  const isList = pathname === "/app/appointments" || pathname === "/app/appointments/";
   const isCalendar = pathname.startsWith("/app/appointments/calendar");
+  const isNew = pathname.startsWith("/app/appointments/new");
+
+  const handleCreated = () => {
+    navigate("/app/appointments");
+  };
 
   return (
     <div className="appts">
@@ -33,17 +38,13 @@ export default function Appointments() {
         <button
           className="btn btn-primary"
           type="button"
-          onClick={() => navigate("/app/appointments")}
+          onClick={() => navigate("/app/appointments/new")}
         >
           New appointment
         </button>
       </div>
 
-      <div
-        className="tabs"
-        role="tablist"
-        aria-label="Appointment views"
-      >
+      <div className="tabs" role="tablist" aria-label="Appointment views">
         <NavLink
           end
           to="/app/appointments"
@@ -62,26 +63,30 @@ export default function Appointments() {
         >
           Calendar
         </NavLink>
+
+        <NavLink
+          to="/app/appointments/new"
+          role="tab"
+          aria-selected={isNew}
+          className={`tab ${isNew ? "active" : ""}`}
+        >
+          New
+        </NavLink>
       </div>
 
       <div className="appts-layout">
-        {/* left: main content (list/calendar/day) */}
         <div className="appts-main appts-card">
           <Routes>
             <Route index element={<AppointmentList />} />
             <Route path="calendar" element={<CalendarView />} />
             <Route path="calendar/day" element={<DayView />} />
+            <Route path="new" element={<AppointmentForm onCreated={handleCreated} />} />
             <Route
               path="*"
               element={<Navigate to="/app/appointments" replace />}
             />
           </Routes>
         </div>
-
-        {/* right: create panel */}
-        <aside className="appts-side">
-          <AppointmentForm />
-        </aside>
       </div>
     </div>
   );

@@ -2,8 +2,11 @@ import os
 import httpx
 from functools import lru_cache
 from typing import Optional, List
-from fastapi import HTTPException, status, Header, Depends
+from fastapi import HTTPException, status, Header
 from jose import jwt, JWTError
+from dotenv import load_dotenv
+
+load_dotenv()
 
 REGION = os.getenv("COG_REGION")
 POOL = os.getenv("COG_USER_POOL_ID")
@@ -15,9 +18,11 @@ ISSUER = f"https://cognito-idp.{REGION}.amazonaws.com/{POOL}"
 JWKS_URL = f"{ISSUER}/.well-known/jwks.json"
 ALGS = ["RS256"]
 
+
 class AuthError(HTTPException):
     def __init__(self, detail="Unauthorized"):
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+
 
 @lru_cache(maxsize=1)
 def get_jwks():
@@ -29,11 +34,13 @@ def get_jwks():
             raise RuntimeError("JWKS payload invalid")
         return data
 
+
 def _find_key(kid: str):
     for k in get_jwks()["keys"]:
         if k.get("kid") == kid:
             return k
     return None
+
 
 def _require_scopes(token_scope: Optional[str], required_scopes: Optional[List[str]]) -> None:
     if not required_scopes:
@@ -42,6 +49,7 @@ def _require_scopes(token_scope: Optional[str], required_scopes: Optional[List[s
     missing = [s for s in required_scopes if s not in present]
     if missing:
         raise AuthError(f"Missing scope(s): {' '.join(missing)}")
+
 
 def verify_access_token(access_token: str, required_scopes: Optional[List[str]] = None) -> dict:
     if not access_token:
@@ -79,16 +87,19 @@ def verify_access_token(access_token: str, required_scopes: Optional[List[str]] 
     except Exception as e:
         raise AuthError(f"Token verification error: {e}")
 
+
 def _parse_bearer(authorization: Optional[str]) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise AuthError("Missing Authorization header")
     return authorization.split(" ", 1)[1].strip()
+
 
 class AuthUser:
     def __init__(self, sub: str, username: Optional[str], scope: str):
         self.sub = sub
         self.username = username
         self.scope = scope
+
 
 async def get_current_user(
     authorization: str = Header(None),
