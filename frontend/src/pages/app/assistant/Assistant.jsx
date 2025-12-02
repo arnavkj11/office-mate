@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import "./assistant.css";
-
-const API_BASE = "http://127.0.0.1:8000";
+import { api } from "../../../api/client";
 
 export default function Assistant() {
   const [input, setInput] = useState("");
@@ -13,27 +12,30 @@ export default function Assistant() {
     if (!input.trim() || loading) return;
     const userText = input.trim();
 
-    setMessages((prev) => [...prev, { role: "user", content: userText }]);
+    const newMessages = [...messages, { role: "user", content: userText }];
+    setMessages(newMessages);
     setInput("");
     setError("");
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/agent/run`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText }),
+      const res = await api.assistantChat({
+        message: userText,
+        history: newMessages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
       });
-
-      if (!res.ok) throw new Error("Network error");
-
-      const data = await res.json();
 
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.output ?? "(no response)" },
+        {
+          role: "assistant",
+          content: res.output ?? "(no response)",
+        },
       ]);
     } catch (err) {
+      console.error("Assistant error:", err);
       setError("Assistant not responding. Please try again.");
     } finally {
       setLoading(false);
@@ -59,7 +61,8 @@ export default function Assistant() {
         <div className="assistant-status">
           <span
             className={
-              "assistant-status-dot " + (loading ? "assistant-busy" : "assistant-idle")
+              "assistant-status-dot " +
+              (loading ? "assistant-busy" : "assistant-idle")
             }
           />
           <span className="assistant-status-text">
@@ -80,7 +83,7 @@ export default function Assistant() {
                 </span>{" "}
                 or{" "}
                 <span className="assistant-chip">
-                  "Summarize this week&apos;s appointments"
+                  "Summarize this week's appointments"
                 </span>
                 .
               </p>
@@ -92,7 +95,9 @@ export default function Assistant() {
               key={i}
               className={
                 "assistant-message-row " +
-                (msg.role === "user" ? "assistant-user" : "assistant-assistant")
+                (msg.role === "user"
+                  ? "assistant-user"
+                  : "assistant-assistant")
               }
             >
               {msg.role === "assistant" && (

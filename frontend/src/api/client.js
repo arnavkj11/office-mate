@@ -42,6 +42,8 @@ export const api = {
 
   createAppointment: (payload) => http("POST", "/appointments", payload),
   listAppointments: () => http("GET", "/appointments"),
+
+  assistantChat: (payload) => http("POST", "/assistant/chat", payload),
 };
 
 export default api;
