@@ -102,11 +102,10 @@ class AuthUser:
 
 
 async def get_current_user(
-    authorization: str = Header(None),
-    required_scopes: Optional[List[str]] = None,
+    authorization: str = Header(None)
 ) -> AuthUser:
     token = _parse_bearer(authorization)
-    claims = verify_access_token(token, required_scopes)
+    claims = verify_access_token(token)
     sub = claims.get("sub")
     if not sub:
         raise AuthError("Missing sub")

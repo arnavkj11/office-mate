@@ -43,7 +43,7 @@ export const api = {
   createAppointment: (payload) => http("POST", "/appointments", payload),
   listAppointments: () => http("GET", "/appointments"),
 
-  assistantChat: (payload) => http("POST", "/assistant/chat", payload),
+  assistantChat: (payload) => http("POST", "/assistant/ui-chat", payload),
 };
 
 export default api;

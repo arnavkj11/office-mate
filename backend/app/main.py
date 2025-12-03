@@ -11,6 +11,7 @@ from app.api.routes_users import router as users_router
 from app.api.routes_businesses import router as businesses_router
 from app.api.routes_appointments import router as appointments_router
 from app.core.auth_cognito import get_current_user
+from app.services.user_service import get_user_by_id
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
@@ -30,16 +31,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/health")
 def health():
     return {"ok": True, "service": "officemate-api", "assistant_version": "chat-ddb-no-model"}
 
-@app.post("/assistant/chat")
-async def assistant_chat(request: Request, current_user=Depends(get_current_user)):
+
+@app.post("/assistant/ui-chat")
+async def assistant_ui_chat(request: Request, current_user=Depends(get_current_user)):
     try:
         data = await request.json()
     except Exception:
-        data = {}
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON body",
+        )
 
     message = data.get("message")
     history_raw = data.get("history") or []
@@ -65,11 +71,18 @@ async def assistant_chat(request: Request, current_user=Depends(get_current_user
             continue
         history.append({"role": r, "content": c})
 
+    user_data = get_user_by_id(current_user.sub)
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found in database"
+        )
+
     try:
         output = run_agent(
             user_message=message,
             history=history,
-            current_user=current_user,
+            current_user=user_data,
         )
         return {"output": output}
     except Exception as e:
@@ -77,6 +90,7 @@ async def assistant_chat(request: Request, current_user=Depends(get_current_user
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
+
 
 app.include_router(users_router)
 app.include_router(businesses_router)

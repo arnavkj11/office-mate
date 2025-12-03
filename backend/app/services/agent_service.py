@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from app.core.ddb import appointments_table
 
 def today_bounds():
@@ -11,13 +11,15 @@ def today_bounds():
 def get_today_appointments(user_id: str, business_id: str):
     start_iso, end_iso = today_bounds()
     table = appointments_table()
-    resp = table.query(
-        KeyConditionExpression=(
-            Key("businessId").eq(business_id)
-            & Key("startTime").between(start_iso, end_iso)
-        ),
-        FilterExpression=Key("userId").eq(user_id),
+    
+    resp = table.scan(
+        FilterExpression=(
+            Attr("businessId").eq(business_id)
+            & Attr("userId").eq(user_id)
+            & Attr("startTime").between(start_iso, end_iso)
+        )
     )
+    
     items = resp.get("Items", [])
     return {
         "date": start_iso[:10],

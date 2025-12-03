@@ -26,14 +26,12 @@ export default function AppointmentForm({ onCreated }) {
 
     try {
       await api.post("/appointments", {
-        payload: {           
-          title: form.title.trim(),
-          email: form.inviteeEmail.trim(),
-          start_time: form.startTime,
-          end_time: form.endTime,
-          location: form.location.trim(),
-          notes: form.notes.trim(),
-        },
+        title: form.title.trim(),
+        email: form.inviteeEmail.trim(),
+        start_time: form.startTime,
+        end_time: form.endTime,
+        location: form.location.trim(),
+        notes: form.notes.trim(),
       });
 
       setForm({

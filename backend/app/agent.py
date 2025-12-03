@@ -29,7 +29,9 @@ def assistant_msg(content: str) -> ChatCompletionAssistantMessageParam:
 def build_base_messages(history: List[Dict[str, str]]) -> List[ChatCompletionMessageParam]:
     messages: List[ChatCompletionMessageParam] = [
         system_msg(
-            "You are OfficeMate Assistant for a scheduling app. You can answer general questions and talk about the user's appointments when given backend data."
+            "You are OfficeMate Assistant for a scheduling app. "
+            "You can answer general questions and talk about the user's appointments "
+            "when given backend data."
         )
     ]
     for h in history:
@@ -68,7 +70,9 @@ def run_agent(
         summary = build_appointments_context(current_user)
         messages.append(
             system_msg(
-                "You have the user's appointments for today as JSON. If zero, say no appointments. If present, list each with time, title, and location."
+                "You have the user's appointments for today as JSON. "
+                "If zero, say no appointments. If present, list each with time, "
+                "title, and location."
             )
         )
         messages.append(system_msg(json.dumps(summary)))
