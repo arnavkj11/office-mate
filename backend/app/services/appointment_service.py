@@ -2,6 +2,8 @@ from uuid import uuid4
 from datetime import datetime, timezone
 from typing import Dict, List
 
+from boto3.dynamodb.conditions import Key, Attr
+
 from app.core.ddb import appointments_table
 from app.models.appointment import AppointmentCreate
 
@@ -11,16 +13,14 @@ def now_iso() -> str:
 
 
 def create_appointment(user_item: Dict, payload: AppointmentCreate) -> Dict:
-    if not user_item.get("defaultBusinessId"):
-        raise ValueError("User has no default business configured")
-
     t = now_iso()
 
     item = {
-        "appointmentId": str(uuid4()),
         "businessId": user_item["defaultBusinessId"],
+        "appointmentId": str(uuid4()),
         "userId": user_item["userId"],
         "title": payload.title.strip(),
+        "clientName": payload.client_name.strip(),
         "inviteeEmail": payload.email.strip(),
         "startTime": payload.start_time,
         "endTime": payload.end_time,
@@ -36,12 +36,21 @@ def create_appointment(user_item: Dict, payload: AppointmentCreate) -> Dict:
 
 
 def list_appointments_for_business(business_id: str) -> List[Dict]:
-    resp = appointments_table().scan()
-    items = resp.get("Items", [])
-    return [i for i in items if i.get("businessId") == business_id]
+    resp = appointments_table().query(
+        KeyConditionExpression=Key("businessId").eq(business_id)
+    )
+    return resp.get("Items", [])
 
 
 def list_appointments_for_user(user_id: str) -> List[Dict]:
     resp = appointments_table().scan()
     items = resp.get("Items", [])
     return [i for i in items if i.get("userId") == user_id]
+
+
+def search_appointments_by_client_name(business_id: str, name: str) -> List[Dict]:
+    resp = appointments_table().scan(
+        FilterExpression=Attr("businessId").eq(business_id) &
+                         Attr("clientName").contains(name)
+    )
+    return resp.get("Items", [])

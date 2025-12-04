@@ -29,6 +29,7 @@ def _item_to_appointment_out(item: dict) -> AppointmentOut:
         businessId=item["businessId"],
         userId=item["userId"],
         title=item["title"],
+        clientName=item.get("clientName", ""),
         inviteeEmail=item["inviteeEmail"],
         startTime=item["startTime"],
         endTime=item["endTime"],

@@ -18,7 +18,7 @@ export default function AppointmentList() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await api.get("/appointments"); // res is { items: [...] }
+        const res = await api.get("/appointments");
         setRows(res.items || []);
       } catch (err) {
         setRows([]);
@@ -27,15 +27,16 @@ export default function AppointmentList() {
     load();
   }, []);
 
-
   const filtered = useMemo(() => {
     const from = range.from ? new Date(range.from) : null;
     const to = range.to ? new Date(range.to) : null;
 
     let out = rows.filter((r) => {
+      const query = q.toLowerCase();
       const hit = q
-        ? (r.title || "").toLowerCase().includes(q.toLowerCase()) ||
-          (r.inviteeEmail || "").toLowerCase().includes(q.toLowerCase())
+        ? (r.title || "").toLowerCase().includes(query) ||
+          (r.clientName || "").toLowerCase().includes(query) ||
+          (r.inviteeEmail || "").toLowerCase().includes(query)
         : true;
 
       const dt = r.startTime || r.date;
@@ -95,7 +96,7 @@ export default function AppointmentList() {
         <div className="list-toolbar">
           <input
             className="inp"
-            placeholder="Search by title or email"
+            placeholder="Search by title, client or email"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -144,7 +145,13 @@ export default function AppointmentList() {
           >
             Title
           </button>
-          <div className="th">Invitee</div>
+          <button
+            className="th sort"
+            type="button"
+            onClick={() => toggleSort("clientName")}
+          >
+            Invitee
+          </button>
           <div className="th">Status</div>
         </div>
 
@@ -174,11 +181,12 @@ export default function AppointmentList() {
                   </div>
                   <div className="td">
                     <div className="cell-title">
-                      {r.inviteeEmail || "—"}
+                      {r.clientName || "Unnamed client"}
                     </div>
-                    {r.location && (
-                      <div className="cell-sub">{r.location}</div>
-                    )}
+                    <div className="cell-sub">
+                      {r.inviteeEmail || "—"}
+                      {r.location ? ` • ${r.location}` : ""}
+                    </div>
                   </div>
                   <div className="td">
                     <span className={`pill ${status}`}>

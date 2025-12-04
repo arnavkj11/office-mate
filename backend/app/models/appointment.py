@@ -5,6 +5,7 @@ from typing import Optional, List
 class AppointmentCreate(BaseModel):
     title: str
     email: EmailStr
+    client_name: str
     start_time: str
     end_time: str
     location: Optional[str] = ""
@@ -16,6 +17,7 @@ class AppointmentOut(BaseModel):
     businessId: str
     userId: str
     title: str
+    clientName: str
     inviteeEmail: EmailStr
     startTime: str
     endTime: str

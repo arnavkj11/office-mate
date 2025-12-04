@@ -4,6 +4,7 @@ import { api } from "../api/client";
 export default function AppointmentForm({ onCreated }) {
   const [form, setForm] = useState({
     title: "",
+    clientName: "",
     inviteeEmail: "",
     startTime: "",
     endTime: "",
@@ -27,6 +28,7 @@ export default function AppointmentForm({ onCreated }) {
     try {
       await api.post("/appointments", {
         title: form.title.trim(),
+        client_name: form.clientName.trim(),
         email: form.inviteeEmail.trim(),
         start_time: form.startTime,
         end_time: form.endTime,
@@ -36,6 +38,7 @@ export default function AppointmentForm({ onCreated }) {
 
       setForm({
         title: "",
+        clientName: "",
         inviteeEmail: "",
         startTime: "",
         endTime: "",
@@ -76,6 +79,17 @@ export default function AppointmentForm({ onCreated }) {
             placeholder="Intro call with client"
             value={form.title}
             onChange={(e) => update("title", e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="appts-form-field">
+          <label className="appts-form-label">Client name</label>
+          <input
+            className="inp"
+            placeholder="John Smith"
+            value={form.clientName}
+            onChange={(e) => update("clientName", e.target.value)}
             required
           />
         </div>
