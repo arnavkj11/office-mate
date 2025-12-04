@@ -1,4 +1,10 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import {
   format,
   parseISO,
@@ -14,6 +20,8 @@ export default function AppointmentList() {
   const [sortKey, setSortKey] = useState("startTime");
   const [asc, setAsc] = useState(true);
   const [rows, setRows] = useState([]);
+  const [colWidths, setColWidths] = useState([120, 80, 260, 150, 220, 120]);
+  const dragInfoRef = useRef(null);
 
   useEffect(() => {
     async function load() {
@@ -82,6 +90,72 @@ export default function AppointmentList() {
     });
   };
 
+  const handleMouseMove = useCallback(
+    (e) => {
+      const info = dragInfoRef.current;
+      if (!info) return;
+      const { startX, index, startWidths } = info;
+      const deltaX = e.clientX - startX;
+      const minWidth = 80;
+      const nextIndex = index + 1;
+      const newWidths = [...startWidths];
+
+      if (nextIndex >= newWidths.length) {
+        const w = Math.max(minWidth, startWidths[index] + deltaX);
+        newWidths[index] = w;
+        setColWidths(newWidths);
+        return;
+      }
+
+      let wCurrent = startWidths[index] + deltaX;
+      let wNext = startWidths[nextIndex] - deltaX;
+
+      if (wCurrent < minWidth) {
+        const diff = minWidth - wCurrent;
+        wCurrent = minWidth;
+        wNext -= diff;
+      }
+
+      if (wNext < minWidth) {
+        const diff = minWidth - wNext;
+        wNext = minWidth;
+        wCurrent -= diff;
+      }
+
+      newWidths[index] = wCurrent;
+      newWidths[nextIndex] = wNext;
+      setColWidths(newWidths);
+    },
+    [setColWidths]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    dragInfoRef.current = null;
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", handleMouseUp);
+  }, [handleMouseMove]);
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  const handleResizeMouseDown = (index, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragInfoRef.current = {
+      startX: e.clientX,
+      index,
+      startWidths: [...colWidths],
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const colTemplate = colWidths.map((w) => `${w}px`).join(" ");
+
   return (
     <div className="list">
       <div className="list-header">
@@ -122,81 +196,137 @@ export default function AppointmentList() {
         </div>
       </div>
 
-      <div className="table">
-        <div className="thead">
-          <button
-            className="th sort"
-            type="button"
-            onClick={() => toggleSort("startTime")}
-          >
-            Date
-          </button>
-          <button
-            className="th sort"
-            type="button"
-            onClick={() => toggleSort("startTime")}
-          >
-            Time
-          </button>
-          <button
-            className="th sort"
-            type="button"
-            onClick={() => toggleSort("title")}
-          >
-            Title
-          </button>
-          <button
-            className="th sort"
-            type="button"
-            onClick={() => toggleSort("clientName")}
-          >
-            Invitee
-          </button>
-          <div className="th">Status</div>
-        </div>
-
-        <div className="tbody">
-          {filtered.length === 0 ? (
-            <div className="empty">
-              No appointments yet. Create one to see it here.
+      <div className="table-wrapper">
+        <div className="table">
+          <div className="thead" style={{ gridTemplateColumns: colTemplate }}>
+            <div className="th">
+              <div className="th-inner">
+                <button
+                  type="button"
+                  className="th-label sort"
+                  onClick={() => toggleSort("startTime")}
+                >
+                  Date
+                </button>
+                <span
+                  className="col-resizer"
+                  onMouseDown={(e) => handleResizeMouseDown(0, e)}
+                />
+              </div>
             </div>
-          ) : (
-            filtered.map((r) => {
-              const dt = r.startTime || r.date;
-              const dateLabel = dt
-                ? format(parseISO(dt), "MMM d, yyyy")
-                : "—";
-              const timeLabel = dt ? format(parseISO(dt), "h:mm a") : "—";
-              const status = r.status || "pending";
+            <div className="th">
+              <div className="th-inner">
+                <button
+                  type="button"
+                  className="th-label sort"
+                  onClick={() => toggleSort("startTime")}
+                >
+                  Time
+                </button>
+                <span
+                  className="col-resizer"
+                  onMouseDown={(e) => handleResizeMouseDown(1, e)}
+                />
+              </div>
+            </div>
+            <div className="th">
+              <div className="th-inner">
+                <button
+                  type="button"
+                  className="th-label sort"
+                  onClick={() => toggleSort("title")}
+                >
+                  Title
+                </button>
+                <span
+                  className="col-resizer"
+                  onMouseDown={(e) => handleResizeMouseDown(2, e)}
+                />
+              </div>
+            </div>
+            <div className="th">
+              <div className="th-inner">
+                <button
+                  type="button"
+                  className="th-label sort"
+                  onClick={() => toggleSort("clientName")}
+                >
+                  Client name
+                </button>
+                <span
+                  className="col-resizer"
+                  onMouseDown={(e) => handleResizeMouseDown(3, e)}
+                />
+              </div>
+            </div>
+            <div className="th">
+              <div className="th-inner">
+                <button
+                  type="button"
+                  className="th-label sort"
+                  onClick={() => toggleSort("inviteeEmail")}
+                >
+                  Client email
+                </button>
+                <span
+                  className="col-resizer"
+                  onMouseDown={(e) => handleResizeMouseDown(4, e)}
+                />
+              </div>
+            </div>
+            <div className="th">
+              <div className="th-inner">
+                <span className="th-label">Status</span>
+              </div>
+            </div>
+          </div>
 
-              return (
-                <div className="tr" key={r.appointmentId}>
-                  <div className="td">{dateLabel}</div>
-                  <div className="td">{timeLabel}</div>
-                  <div className="td">
-                    <div className="cell-title">{r.title || "—"}</div>
-                    {r.notes && (
-                      <div className="cell-sub">{r.notes.slice(0, 60)}</div>
-                    )}
-                  </div>
-                  <div className="td">
-                    <div className="cell-title">
+          <div className="tbody">
+            {filtered.length === 0 ? (
+              <div className="empty">
+                No appointments yet. Create one to see it here.
+              </div>
+            ) : (
+              filtered.map((r) => {
+                const dt = r.startTime || r.date;
+                const dateLabel = dt
+                  ? format(parseISO(dt), "MMM d, yyyy")
+                  : "—";
+                const timeLabel = dt ? format(parseISO(dt), "h:mm a") : "—";
+                const status = r.status || "pending";
+
+                return (
+                  <div
+                    className="tr"
+                    style={{ gridTemplateColumns: colTemplate }}
+                    key={r.appointmentId}
+                  >
+                    <div className="td">{dateLabel}</div>
+                    <div className="td">{timeLabel}</div>
+                    <div className="td td-title">
+                      <div className="cell-title">{r.title || "—"}</div>
+                      {r.notes && (
+                        <div className="cell-sub">
+                          {r.notes.slice(0, 80)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="td td-client">
                       {r.clientName || "Unnamed client"}
                     </div>
-                    <div className="cell-sub">
+                    <div className="td td-email">
                       {r.inviteeEmail || "—"}
-                      {r.location ? ` • ${r.location}` : ""}
+                    </div>
+                    <div className="td td-status">
+                      <span className={`pill ${status}`}>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </span>
                     </div>
                   </div>
-                  <div className="td">
-                    <span className={`pill ${status}`}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </div>

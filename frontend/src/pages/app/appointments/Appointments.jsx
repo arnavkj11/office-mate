@@ -18,7 +18,8 @@ export default function Appointments() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const isList = pathname === "/app/appointments" || pathname === "/app/appointments/";
+  const isList =
+    pathname === "/app/appointments" || pathname === "/app/appointments/";
   const isCalendar = pathname.startsWith("/app/appointments/calendar");
   const isNew = pathname.startsWith("/app/appointments/new");
 
@@ -80,7 +81,10 @@ export default function Appointments() {
             <Route index element={<AppointmentList />} />
             <Route path="calendar" element={<CalendarView />} />
             <Route path="calendar/day" element={<DayView />} />
-            <Route path="new" element={<AppointmentForm onCreated={handleCreated} />} />
+            <Route
+              path="new"
+              element={<AppointmentForm onCreated={handleCreated} />}
+            />
             <Route
               path="*"
               element={<Navigate to="/app/appointments" replace />}
