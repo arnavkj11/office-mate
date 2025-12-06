@@ -20,20 +20,51 @@ export default function AppointmentList() {
   const [sortKey, setSortKey] = useState("startTime");
   const [asc, setAsc] = useState(true);
   const [rows, setRows] = useState([]);
-  const [colWidths, setColWidths] = useState([120, 80, 260, 150, 220, 120]);
+
+  const [colWidths, setColWidths] = useState([240, 240, 240, 240, 240]);
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
+
   const dragInfoRef = useRef(null);
+  const wrapperRef = useRef(null);
 
   useEffect(() => {
     async function load() {
       try {
         const res = await api.get("/appointments");
         setRows(res.items || []);
-      } catch (err) {
+      } catch {
         setRows([]);
       }
     }
     load();
   }, []);
+
+  useEffect(() => {
+    function measureAndSetEqual() {
+      const width =
+        wrapperRef.current?.clientWidth ||
+        (typeof window !== "undefined" ? window.innerWidth : 1200);
+      const perCol = width / 5;
+      setColWidths(Array(5).fill(perCol));
+    }
+
+    measureAndSetEqual();
+    setViewportWidth(window.innerWidth);
+
+    function handleResize() {
+      setViewportWidth(window.innerWidth);
+      if (!dragInfoRef.current) {
+        measureAndSetEqual();
+      }
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isDesktop = viewportWidth >= 600;
 
   const filtered = useMemo(() => {
     const from = range.from ? new Date(range.from) : null;
@@ -94,6 +125,7 @@ export default function AppointmentList() {
     (e) => {
       const info = dragInfoRef.current;
       if (!info) return;
+
       const { startX, index, startWidths } = info;
       const deltaX = e.clientX - startX;
       const minWidth = 80;
@@ -101,8 +133,7 @@ export default function AppointmentList() {
       const newWidths = [...startWidths];
 
       if (nextIndex >= newWidths.length) {
-        const w = Math.max(minWidth, startWidths[index] + deltaX);
-        newWidths[index] = w;
+        newWidths[index] = Math.max(minWidth, startWidths[index] + deltaX);
         setColWidths(newWidths);
         return;
       }
@@ -124,6 +155,7 @@ export default function AppointmentList() {
 
       newWidths[index] = wCurrent;
       newWidths[nextIndex] = wNext;
+
       setColWidths(newWidths);
     },
     [setColWidths]
@@ -143,13 +175,16 @@ export default function AppointmentList() {
   }, [handleMouseMove, handleMouseUp]);
 
   const handleResizeMouseDown = (index, e) => {
+    if (!isDesktop) return;
     e.preventDefault();
     e.stopPropagation();
+
     dragInfoRef.current = {
       startX: e.clientX,
       index,
       startWidths: [...colWidths],
     };
+
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
   };
@@ -162,8 +197,7 @@ export default function AppointmentList() {
         <div>
           <div className="list-title">All appointments</div>
           <div className="list-sub">
-            {filtered.length}{" "}
-            {filtered.length === 1 ? "appointment" : "appointments"}
+            {filtered.length} {filtered.length === 1 ? "appointment" : "appointments"}
           </div>
         </div>
 
@@ -179,149 +213,102 @@ export default function AppointmentList() {
               className="inp"
               type="date"
               value={range.from}
-              onChange={(e) =>
-                setRange((r) => ({ ...r, from: e.target.value }))
-              }
+              onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
             />
             <span className="dash">–</span>
             <input
               className="inp"
               type="date"
               value={range.to}
-              onChange={(e) =>
-                setRange((r) => ({ ...r, to: e.target.value }))
-              }
+              onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
             />
           </div>
         </div>
       </div>
 
-      <div className="table-wrapper">
+      <div className="table-wrapper" ref={wrapperRef}>
         <div className="table">
-          <div className="thead" style={{ gridTemplateColumns: colTemplate }}>
+          <div
+            className="thead"
+            style={isDesktop ? { gridTemplateColumns: colTemplate } : undefined}
+          >
             <div className="th">
               <div className="th-inner">
-                <button
-                  type="button"
-                  className="th-label sort"
-                  onClick={() => toggleSort("startTime")}
-                >
+                <button className="th-label sort" onClick={() => toggleSort("startTime")}>
                   Date
                 </button>
-                <span
-                  className="col-resizer"
-                  onMouseDown={(e) => handleResizeMouseDown(0, e)}
-                />
+                <span className="col-resizer" onMouseDown={(e) => handleResizeMouseDown(0, e)} />
               </div>
             </div>
+
             <div className="th">
               <div className="th-inner">
-                <button
-                  type="button"
-                  className="th-label sort"
-                  onClick={() => toggleSort("startTime")}
-                >
+                <button className="th-label sort" onClick={() => toggleSort("startTime")}>
                   Time
                 </button>
-                <span
-                  className="col-resizer"
-                  onMouseDown={(e) => handleResizeMouseDown(1, e)}
-                />
+                <span className="col-resizer" onMouseDown={(e) => handleResizeMouseDown(1, e)} />
               </div>
             </div>
+
             <div className="th">
               <div className="th-inner">
-                <button
-                  type="button"
-                  className="th-label sort"
-                  onClick={() => toggleSort("title")}
-                >
+                <button className="th-label sort" onClick={() => toggleSort("title")}>
                   Title
                 </button>
-                <span
-                  className="col-resizer"
-                  onMouseDown={(e) => handleResizeMouseDown(2, e)}
-                />
+                <span className="col-resizer" onMouseDown={(e) => handleResizeMouseDown(2, e)} />
               </div>
             </div>
+
             <div className="th">
               <div className="th-inner">
-                <button
-                  type="button"
-                  className="th-label sort"
-                  onClick={() => toggleSort("clientName")}
-                >
+                <button className="th-label sort" onClick={() => toggleSort("clientName")}>
                   Client name
                 </button>
-                <span
-                  className="col-resizer"
-                  onMouseDown={(e) => handleResizeMouseDown(3, e)}
-                />
+                <span className="col-resizer" onMouseDown={(e) => handleResizeMouseDown(3, e)} />
               </div>
             </div>
+
             <div className="th">
               <div className="th-inner">
-                <button
-                  type="button"
-                  className="th-label sort"
-                  onClick={() => toggleSort("inviteeEmail")}
-                >
+                <button className="th-label sort" onClick={() => toggleSort("inviteeEmail")}>
                   Client email
                 </button>
-                <span
-                  className="col-resizer"
-                  onMouseDown={(e) => handleResizeMouseDown(4, e)}
-                />
-              </div>
-            </div>
-            <div className="th">
-              <div className="th-inner">
-                <span className="th-label">Status</span>
               </div>
             </div>
           </div>
 
           <div className="tbody">
             {filtered.length === 0 ? (
-              <div className="empty">
-                No appointments yet. Create one to see it here.
-              </div>
+              <div className="empty">No appointments yet. Create one to see it here.</div>
             ) : (
               filtered.map((r) => {
                 const dt = r.startTime || r.date;
-                const dateLabel = dt
-                  ? format(parseISO(dt), "MMM d, yyyy")
-                  : "—";
+                const dateLabel = dt ? format(parseISO(dt), "MMM d, yyyy") : "—";
                 const timeLabel = dt ? format(parseISO(dt), "h:mm a") : "—";
                 const status = r.status || "pending";
+                const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
 
                 return (
                   <div
                     className="tr"
-                    style={{ gridTemplateColumns: colTemplate }}
                     key={r.appointmentId}
+                    style={isDesktop ? { gridTemplateColumns: colTemplate } : undefined}
                   >
-                    <div className="td">{dateLabel}</div>
+                    <div className="td td-date">
+                      <div>{dateLabel}</div>
+                      <span className={`pill ${status}`}>{statusLabel}</span>
+                    </div>
+
                     <div className="td">{timeLabel}</div>
+
                     <div className="td td-title">
                       <div className="cell-title">{r.title || "—"}</div>
-                      {r.notes && (
-                        <div className="cell-sub">
-                          {r.notes.slice(0, 80)}
-                        </div>
-                      )}
+                      {r.notes && <div className="cell-sub">{r.notes.slice(0, 80)}</div>}
                     </div>
-                    <div className="td td-client">
-                      {r.clientName || "Unnamed client"}
-                    </div>
-                    <div className="td td-email">
-                      {r.inviteeEmail || "—"}
-                    </div>
-                    <div className="td td-status">
-                      <span className={`pill ${status}`}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </span>
-                    </div>
+
+                    <div className="td td-client">{r.clientName || "Unnamed client"}</div>
+
+                    <div className="td td-email">{r.inviteeEmail || "—"}</div>
                   </div>
                 );
               })
