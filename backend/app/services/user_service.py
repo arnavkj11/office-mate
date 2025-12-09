@@ -2,6 +2,13 @@ from datetime import datetime, timezone
 from typing import Optional, Dict
 
 from app.core.ddb import users_table
+from app.models.user import UserBootstrapIn
+from app.models.business import BusinessCreate
+from app.services.business_service import (
+    find_business_by_name,
+    create_business_for_user,
+    set_default_business_for_user,
+)
 
 
 def now_iso() -> str:
@@ -13,40 +20,50 @@ def get_user_by_id(user_id: str) -> Optional[Dict]:
     return resp.get("Item")
 
 
-def upsert_user(
-    user_id: str,
-    email: str,
-    name: Optional[str] = None,
-    business_name: Optional[str] = None,
-    location: Optional[str] = None,
-    phone: Optional[str] = None,
-) -> Dict:
+def bootstrap_user(user_id: str, payload: UserBootstrapIn) -> Dict:
     table = users_table()
     existing = get_user_by_id(user_id)
     t = now_iso()
 
     if existing:
-        item = {
+        user_item = {
             **existing,
-            "email": email or existing.get("email", ""),
-            "name": name or existing.get("name", ""),
-            "businessName": business_name or existing.get("businessName", ""),
-            "location": location or existing.get("location", ""),
-            "phone": phone or existing.get("phone", ""),
+            "email": payload.email,
+            "name": payload.name,
+            "businessName": payload.businessName,
+            "location": payload.location or "",
+            "phone": payload.phone or "",
             "updatedAt": t,
         }
     else:
-        item = {
+        user_item = {
             "userId": user_id,
-            "email": email,
-            "name": name or "",
-            "businessName": business_name or "",
+            "email": payload.email,
+            "name": payload.name,
+            "businessName": payload.businessName,
+            "location": payload.location or "",
+            "phone": payload.phone or "",
             "defaultBusinessId": None,
-            "location": location or "",
-            "phone": phone or "",
             "createdAt": t,
             "updatedAt": t,
         }
 
-    table.put_item(Item=item)
-    return item
+    table.put_item(Item=user_item)
+
+    business = find_business_by_name(payload.businessName)
+
+    if business:
+        business_id = business["businessId"]
+        set_default_business_for_user(user_id, business_id)
+    else:
+        business_payload = BusinessCreate(
+            businessName=payload.businessName,
+            location=payload.location or "",
+        )
+        business = create_business_for_user(user_item, business_payload)
+        business_id = business["businessId"]
+
+    user_item["defaultBusinessId"] = business_id
+
+    final_user = get_user_by_id(user_id)
+    return final_user or user_item
