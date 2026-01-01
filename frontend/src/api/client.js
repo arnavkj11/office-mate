@@ -26,10 +26,7 @@ async function http(method, path, body) {
     throw new Error(msg || `HTTP ${res.status}`);
   }
 
-  if (res.status === 204) {
-    return null;
-  }
-
+  if (res.status === 204) return null;
   return res.json();
 }
 
@@ -40,8 +37,23 @@ export const api = {
   me: () => http("GET", "/users/me"),
   bootstrap: (payload) => http("POST", "/users/bootstrap", payload),
 
-  createAppointment: (payload) => http("POST", "/appointments", payload),
+  createAppointment: async (payload) => {
+    const created = await http("POST", "/appointments", payload);
+    window.dispatchEvent(
+      new CustomEvent("appointments:changed", { detail: created })
+    );
+    return created;
+  },
+
   listAppointments: () => http("GET", "/appointments"),
+
+  appointmentSummary: (date, tz) =>
+    http(
+      "GET",
+      `/appointments/summary?date=${encodeURIComponent(
+        date
+      )}&tz=${encodeURIComponent(tz)}`
+    ),
 
   assistantChat: (payload) => http("POST", "/assistant/ui-chat", payload),
 };

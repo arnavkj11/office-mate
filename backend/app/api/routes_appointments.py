@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import HTMLResponse
 from typing import Optional
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
 
 from app.core.auth_cognito import get_current_user, AuthUser
 from app.models.appointment import AppointmentCreate, AppointmentOut, AppointmentList
@@ -43,19 +45,23 @@ def _item_to_appointment_out(item: dict) -> AppointmentOut:
     )
 
 
+def _parse_dt_utc(s: str, assumed_tz: ZoneInfo) -> datetime:
+    ss = s.strip()
+    if ss.endswith("Z"):
+        ss = ss[:-1] + "+00:00"
+    d = datetime.fromisoformat(ss)
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=assumed_tz)
+    return d.astimezone(ZoneInfo("UTC"))
+
+
 @router.post("", response_model=AppointmentOut)
 def create_appointment_route(
     payload: AppointmentCreate,
     user: AuthUser = Depends(get_current_user),
 ) -> AppointmentOut:
     user_item = _load_user_item(user)
-    try:
-        item = create_appointment(user_item, payload)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+    item = create_appointment(user_item, payload)
     return _item_to_appointment_out(item)
 
 
@@ -73,6 +79,60 @@ def list_appointments_route(
     items = list_appointments_for_business(business_id)
     out_items = [_item_to_appointment_out(i) for i in items]
     return AppointmentList(items=out_items)
+
+
+@router.get("/summary")
+def appointments_summary(
+    date: str = Query(...),
+    tz: str = Query("Asia/Singapore"),
+    user: AuthUser = Depends(get_current_user),
+):
+    user_item = _load_user_item(user)
+    business_id = user_item.get("defaultBusinessId")
+    if not business_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User has no default business configured",
+        )
+
+    zone = ZoneInfo(tz)
+    day = datetime.fromisoformat(date).date()
+
+    start_local = datetime.combine(day, time.min).replace(tzinfo=zone)
+    end_local = datetime.combine(day, time.max).replace(tzinfo=zone)
+
+    utc = ZoneInfo("UTC")
+    start_utc = start_local.astimezone(utc)
+    end_utc = end_local.astimezone(utc)
+
+    items = list_appointments_for_business(business_id)
+    out_items = [_item_to_appointment_out(i) for i in items]
+
+    todays = []
+    for a in out_items:
+        try:
+            d = _parse_dt_utc(a.startTime, zone)
+        except Exception:
+            continue
+        if start_utc <= d <= end_utc:
+            todays.append(a)
+
+    confirmed = sum(1 for a in todays if (a.status or "").lower() == "confirmed")
+    pending = sum(1 for a in todays if (a.status or "").lower() == "pending")
+
+    todays.sort(key=lambda a: _parse_dt_utc(a.startTime, zone))
+    upcoming = todays[:6]
+
+    return {
+        "date": date,
+        "tz": tz,
+        "counts": {
+            "confirmed": confirmed,
+            "pending": pending,
+            "total": len(todays),
+        },
+        "upcoming": upcoming,
+    }
 
 
 @router.get("/rsvp", response_class=HTMLResponse)

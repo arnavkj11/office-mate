@@ -29,17 +29,24 @@ export default function AppointmentList() {
   const dragInfoRef = useRef(null);
   const wrapperRef = useRef(null);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await api.get("/appointments");
-        setRows(res.items || []);
-      } catch {
-        setRows([]);
-      }
+  const load = useCallback(async () => {
+    try {
+      const res = await api.get("/appointments");
+      setRows(res.items || []);
+    } catch {
+      setRows([]);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    const onChanged = () => load();
+    window.addEventListener("appointments:changed", onChanged);
+    return () => window.removeEventListener("appointments:changed", onChanged);
+  }, [load]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);

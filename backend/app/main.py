@@ -19,23 +19,22 @@ app = FastAPI(title="OfficeMate API")
 
 origins_env = os.getenv(
     "FRONTEND_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174",
 )
 allow_origins = [o.strip() for o in origins_env.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
+    allow_origin_regex=r"^http:\/\/(localhost|127\.0\.0\.1):\d+$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
 @app.get("/health")
 def health():
     return {"ok": True, "service": "officemate-api", "assistant_version": "chat-ddb-no-model"}
-
 
 @app.post("/assistant/ui-chat")
 async def assistant_ui_chat(request: Request, current_user=Depends(get_current_user)):
@@ -90,7 +89,6 @@ async def assistant_ui_chat(request: Request, current_user=Depends(get_current_u
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
-
 
 app.include_router(users_router)
 app.include_router(businesses_router)
