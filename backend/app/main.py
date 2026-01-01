@@ -4,7 +4,6 @@ import os
 
 from fastapi import FastAPI, HTTPException, status, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.routing import APIRoute
 
 from app.agent import run_agent
 from app.api.routes_users import router as users_router
@@ -94,9 +93,6 @@ app.include_router(users_router)
 app.include_router(businesses_router)
 app.include_router(appointments_router)
 
-for route in app.routes:
-    if isinstance(route, APIRoute):
-        print("ROUTE:", route.path, route.methods)
 
 if __name__ == "__main__":
     import uvicorn
