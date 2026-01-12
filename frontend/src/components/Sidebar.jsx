@@ -18,6 +18,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileToggle }) {
             onToggle();
           }}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          type="button"
         >
           {collapsed ? "›" : "‹"}
         </button>
@@ -33,6 +34,12 @@ export default function Sidebar({ collapsed, onToggle, onMobileToggle }) {
           <span className="sb-ico">📅</span>
           {!collapsed && <span className="sb-text">Appointments</span>}
         </NavLink>
+
+        <NavLink to="/app/workinghours" className="sb-link">
+          <span className="sb-ico">⏱️</span>
+          {!collapsed && <span className="sb-text">Working hours</span>}
+        </NavLink>
+
 
         <NavLink to="/app/assistant" className="sb-link">
           <span className="sb-ico">🤖</span>

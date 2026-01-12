@@ -1,3 +1,4 @@
+/* Sidebar container */
 .app-sidebar {
   width: var(--sb-w);
   background: #fff;
@@ -5,9 +6,17 @@
   display: flex;
   flex-direction: column;
   transition: width 0.2s ease;
-  height: 100%;
+
+  /* FULL SCREEN HEIGHT on desktop */
+  height: 100vh;
+
+  /* keeps sidebar visible while page scrolls */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
 }
 
+/* Header section */
 .sb-head {
   display: flex;
   align-items: center;
@@ -16,6 +25,7 @@
   min-height: 56px;
 }
 
+/* Brand area */
 .sb-brand {
   display: flex;
   align-items: center;
@@ -31,6 +41,7 @@
   font-weight: 700;
 }
 
+/* Collapse/expand toggle */
 .sb-toggle {
   margin-left: auto;
   background: transparent;
@@ -39,12 +50,17 @@
   cursor: pointer;
 }
 
+/* Nav list */
 .sb-nav {
   display: grid;
   gap: 6px;
   padding: 8px;
+
+  /* allow scrolling if menu becomes long */
+  overflow: auto;
 }
 
+/* Nav link */
 .sb-link {
   display: flex;
   align-items: center;
@@ -65,6 +81,7 @@
   text-align: center;
 }
 
+/* Mobile behavior */
 @media (max-width: 768px) {
   .app-sidebar {
     position: fixed;

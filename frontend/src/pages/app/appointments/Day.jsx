@@ -3,12 +3,38 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { format, parseISO, isSameDay } from "date-fns";
 import { api } from "../../../api/client";
 
+function dayNameFromISO(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  return names[d.getDay()];
+}
+
+function computeWindow(workingHours, dateStr) {
+  if (!workingHours || !dateStr) return { enabled: false, label: "Working hours not set" };
+
+  const overrides = Array.isArray(workingHours.overrides) ? workingHours.overrides : [];
+  const weekly = Array.isArray(workingHours.weekly) ? workingHours.weekly : [];
+
+  const o = overrides.find((x) => x?.date === dateStr);
+  if (o) {
+    if (!o.enabled) return { enabled: false, label: "Off" };
+    return { enabled: true, label: `${o.start}–${o.end}` };
+  }
+
+  const dn = dayNameFromISO(dateStr);
+  const w = weekly.find((x) => x?.day === dn);
+  if (!w || !w.enabled) return { enabled: false, label: "Off" };
+  return { enabled: true, label: `${w.start}–${w.end}` };
+}
+
 export default function DayView() {
   const navigate = useNavigate();
   const search = new URLSearchParams(useLocation().search);
   const dateStr = search.get("date") || format(new Date(), "yyyy-MM-dd");
 
   const [items, setItems] = useState([]);
+  const [workingHours, setWorkingHours] = useState(null);
+  const [whLabel, setWhLabel] = useState("Loading...");
 
   const day = useMemo(() => parseISO(dateStr), [dateStr]);
 
@@ -23,6 +49,27 @@ export default function DayView() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    async function loadWH() {
+      try {
+        const wh = await api.get("/working-hours/me");
+        setWorkingHours(wh);
+      } catch {
+        setWorkingHours(null);
+      }
+    }
+    loadWH();
+  }, []);
+
+  useEffect(() => {
+    if (!workingHours) {
+      setWhLabel("Working hours not set");
+      return;
+    }
+    const w = computeWindow(workingHours, dateStr);
+    setWhLabel(w.label);
+  }, [workingHours, dateStr]);
 
   const dayItems = useMemo(() => {
     const filtered = items.filter((r) => {
@@ -46,14 +93,17 @@ export default function DayView() {
         <button
           type="button"
           className="btn btn-ghost"
-          onClick={() =>
-            navigate("/app/appointments/calendar", { replace: true })
-          }
+          onClick={() => navigate("/app/appointments/calendar", { replace: true })}
         >
           Back to calendar
         </button>
         <div className="spacer" />
         <div className="chip">{format(day, "EEEE, MMM d, yyyy")}</div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 12 }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Working hours</div>
+        <div style={{ color: "#6b7280" }}>{whLabel}</div>
       </div>
 
       <div className="day-list">
@@ -64,8 +114,7 @@ export default function DayView() {
             const dt = a.startTime || a.date;
             const timeLabel = dt ? format(parseISO(dt), "h:mm a") : "—";
             const status = a.status || "pending";
-            const statusLabel =
-              status.charAt(0).toUpperCase() + status.slice(1);
+            const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
 
             return (
               <div key={a.appointmentId} className="card day-apt">
@@ -74,9 +123,7 @@ export default function DayView() {
                   <div className="day-apt-title">{a.title || "Untitled"}</div>
                   <div className="day-apt-meta">
                     <span>{a.clientName || "Unnamed client"}</span>
-                    {a.inviteeEmail && (
-                      <span className="day-apt-email">{a.inviteeEmail}</span>
-                    )}
+                    {a.inviteeEmail && <span className="day-apt-email">{a.inviteeEmail}</span>}
                   </div>
                 </div>
                 <div className="day-apt-status">

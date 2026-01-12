@@ -33,6 +33,7 @@ async function http(method, path, body) {
 export const api = {
   get: (path) => http("GET", path),
   post: (path, body) => http("POST", path, body),
+  put: (path, body) => http("PUT", path, body),
 
   me: () => http("GET", "/users/me"),
   bootstrap: (payload) => http("POST", "/users/bootstrap", payload),

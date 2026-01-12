@@ -17,18 +17,17 @@ import Assistant from "./pages/app/assistant/Assistant";
 import Notes from "./pages/app/Notes";
 import Settings from "./pages/app/Settings";
 import Onboarding from "./pages/Onboarding";
+import Working from "./pages/app/workinghours/Working";
 
 export default function App() {
   return (
     <>
       <Routes>
-        {/* Public site */}
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/auth" element={<Auth />} />
 
-        {/* Onboarding */}
         <Route
           path="/onboarding"
           element={
@@ -38,7 +37,6 @@ export default function App() {
           }
         />
 
-        {/* Authenticated app area */}
         <Route
           path="/app"
           element={
@@ -49,17 +47,14 @@ export default function App() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-
-          {/* IMPORTANT: allow nested appointment routes */}
           <Route path="appointments/*" element={<Appointments />} />
-
+          <Route path="workinghours" element={<Working />} />
           <Route path="assistant" element={<Assistant />} />
           <Route path="notes" element={<Notes />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Route>
 
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
