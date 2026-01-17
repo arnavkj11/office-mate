@@ -22,7 +22,7 @@ function computeWindow(workingHours, dateStr) {
   }
 
   const dn = dayNameFromISO(dateStr);
-  const w = weekly.find((x) => x?.day === dn);
+  const w = weekly.find((x) => x?.day === dn || x?.day === dn.toLowerCase());
   if (!w || !w.enabled) return { enabled: false, label: "Off" };
   return { enabled: true, label: `${w.start}–${w.end}` };
 }
@@ -35,31 +35,58 @@ export default function DayView() {
   const [items, setItems] = useState([]);
   const [workingHours, setWorkingHours] = useState(null);
   const [whLabel, setWhLabel] = useState("Loading...");
+  const [refreshing, setRefreshing] = useState(false);
 
   const day = useMemo(() => parseISO(dateStr), [dateStr]);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await api.get("/appointments");
-        setItems(res.items || []);
-      } catch {
-        setItems([]);
-      }
+  async function loadAppointments() {
+    try {
+      const res = await api.get("/appointments");
+      setItems(res.items || []);
+    } catch {
+      setItems([]);
     }
-    load();
-  }, []);
+  }
+
+  async function loadWH() {
+    try {
+      const wh = await api.get("/working-hours/me");
+      setWorkingHours(wh);
+    } catch {
+      setWorkingHours(null);
+    }
+  }
+
+  async function refreshAll() {
+    setRefreshing(true);
+    await Promise.all([loadAppointments(), loadWH()]);
+    setRefreshing(false);
+  }
 
   useEffect(() => {
-    async function loadWH() {
-      try {
-        const wh = await api.get("/working-hours/me");
-        setWorkingHours(wh);
-      } catch {
-        setWorkingHours(null);
-      }
+    refreshAll();
+  }, [dateStr]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function handleUpdated() {
+      if (!alive) return;
+      await loadWH();
     }
-    loadWH();
+
+    function onFocus() {
+      handleUpdated();
+    }
+
+    window.addEventListener("workinghours:updated", handleUpdated);
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      alive = false;
+      window.removeEventListener("workinghours:updated", handleUpdated);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   useEffect(() => {
@@ -69,6 +96,11 @@ export default function DayView() {
     }
     const w = computeWindow(workingHours, dateStr);
     setWhLabel(w.label);
+  }, [workingHours, dateStr]);
+
+  const isOff = useMemo(() => {
+    if (!workingHours) return false;
+    return !computeWindow(workingHours, dateStr).enabled;
   }, [workingHours, dateStr]);
 
   const dayItems = useMemo(() => {
@@ -97,13 +129,29 @@ export default function DayView() {
         >
           Back to calendar
         </button>
+
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={refreshAll}
+          disabled={refreshing}
+          style={{ marginLeft: 8 }}
+        >
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </button>
+
         <div className="spacer" />
         <div className="chip">{format(day, "EEEE, MMM d, yyyy")}</div>
       </div>
 
       <div className="card" style={{ marginBottom: 12 }}>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>Working hours</div>
-        <div style={{ color: "#6b7280" }}>{whLabel}</div>
+        <div style={{ color: isOff ? "#b91c1c" : "#6b7280" }}>{whLabel}</div>
+        {isOff ? (
+          <div style={{ marginTop: 6, fontSize: 13, color: "#b91c1c" }}>
+            This date is not available for booking.
+          </div>
+        ) : null}
       </div>
 
       <div className="day-list">

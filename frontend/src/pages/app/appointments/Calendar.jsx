@@ -24,7 +24,7 @@ function computeWindow(workingHours, dateStr) {
   }
 
   const dn = dayNameFromISO(dateStr);
-  const w = weekly.find((x) => x?.day === dn);
+  const w = weekly.find((x) => x?.day === dn || x?.day === dn.toLowerCase());
   if (!w || !w.enabled) return { enabled: false, label: "Off" };
   return { enabled: true, label: `${w.start}–${w.end}` };
 }
@@ -34,30 +34,57 @@ export default function CalendarView() {
   const [items, setItems] = useState([]);
   const [workingHours, setWorkingHours] = useState(null);
   const [whLabel, setWhLabel] = useState("Loading...");
+  const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await api.get("/appointments");
-        setItems(res.items || []);
-      } catch {
-        setItems([]);
-      }
+  async function loadAppointments() {
+    try {
+      const res = await api.get("/appointments");
+      setItems(res.items || []);
+    } catch {
+      setItems([]);
     }
-    load();
+  }
+
+  async function loadWH() {
+    try {
+      const wh = await api.get("/working-hours/me");
+      setWorkingHours(wh);
+    } catch {
+      setWorkingHours(null);
+    }
+  }
+
+  async function refreshAll() {
+    setRefreshing(true);
+    await Promise.all([loadAppointments(), loadWH()]);
+    setRefreshing(false);
+  }
+
+  useEffect(() => {
+    refreshAll();
   }, []);
 
   useEffect(() => {
-    async function loadWH() {
-      try {
-        const wh = await api.get("/working-hours/me");
-        setWorkingHours(wh);
-      } catch {
-        setWorkingHours(null);
-      }
+    let alive = true;
+
+    async function handleUpdated() {
+      if (!alive) return;
+      await loadWH();
     }
-    loadWH();
+
+    function onFocus() {
+      handleUpdated();
+    }
+
+    window.addEventListener("workinghours:updated", handleUpdated);
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      alive = false;
+      window.removeEventListener("workinghours:updated", handleUpdated);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   const eventsByDate = useMemo(() => {
@@ -98,8 +125,11 @@ export default function CalendarView() {
   }, [workingHours, selectedKey]);
 
   const onDayClick = (d) => {
-    setValue(d);
     const dateStr = format(d, "yyyy-MM-dd");
+    const w = computeWindow(workingHours, dateStr);
+    if (workingHours && !w.enabled) return;
+
+    setValue(d);
     navigate(`/app/appointments/calendar/day?date=${dateStr}`);
   };
 
@@ -108,6 +138,7 @@ export default function CalendarView() {
       <div className="cal-toolbar">
         <div className="cal-title">Calendar</div>
         <div className="spacer" />
+
         <button
           type="button"
           className="btn btn-ghost"
@@ -119,6 +150,16 @@ export default function CalendarView() {
           }}
         >
           Today
+        </button>
+
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={refreshAll}
+          disabled={refreshing}
+          style={{ marginLeft: 8 }}
+        >
+          {refreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
@@ -141,29 +182,46 @@ export default function CalendarView() {
         <Calendar
           value={value}
           onClickDay={onDayClick}
+          tileDisabled={({ date, view }) => {
+            if (view !== "month") return false;
+            if (!workingHours) return false;
+            const key = format(date, "yyyy-MM-dd");
+            return !computeWindow(workingHours, key).enabled;
+          }}
           tileContent={({ date, view }) => {
             if (view !== "month") return null;
+
             const key = format(date, "yyyy-MM-dd");
+            const w = computeWindow(workingHours, key);
+
             const events = eventsByDate.get(key) || [];
-            if (events.length === 0) return null;
+            if (events.length === 0 && !workingHours) return null;
 
             const shown = events.slice(0, 2);
             const remaining = events.length - shown.length;
             const isToday = key === todayKey;
 
             return (
-              <div className="cal-events">
-                {shown.map((ev) => (
-                  <div
-                    key={ev.id}
-                    className={"cal-event" + (isToday ? " cal-event-today" : "")}
-                  >
-                    <span className="cal-event-dot" />
-                    <span className="cal-event-time">{format(ev.date, "HH:mm")}</span>
-                    <span className="cal-event-title">{ev.title}</span>
+              <div className="cal-tile-inner">
+                <div className={"cal-wh-badge " + (w.enabled ? "on" : "off")}>
+                  {workingHours ? (w.enabled ? w.label : "Off") : "—"}
+                </div>
+
+                {events.length === 0 ? null : (
+                  <div className="cal-events">
+                    {shown.map((ev) => (
+                      <div
+                        key={ev.id}
+                        className={"cal-event" + (isToday ? " cal-event-today" : "")}
+                      >
+                        <span className="cal-event-dot" />
+                        <span className="cal-event-time">{format(ev.date, "HH:mm")}</span>
+                        <span className="cal-event-title">{ev.title}</span>
+                      </div>
+                    ))}
+                    {remaining > 0 && <div className="cal-event-more">+{remaining} more</div>}
                   </div>
-                ))}
-                {remaining > 0 && <div className="cal-event-more">+{remaining} more</div>}
+                )}
               </div>
             );
           }}
