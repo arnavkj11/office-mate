@@ -146,7 +146,7 @@ export default function Working() {
 
   useEffect(() => {
     if (!msg) return;
-    const t = setTimeout(() => setMsg(""), 2500);
+    const t = setTimeout(() => setMsg(""), 2200);
     return () => clearTimeout(t);
   }, [msg]);
 
@@ -199,7 +199,7 @@ export default function Working() {
 
       savedSnapshotRef.current = makeSnapshot({ timezone, week, overrides });
       setDirty(false);
-      setMsg("Saved.");
+      setMsg("Saved");
     } catch (e) {
       setErr(e?.message || "Failed to save");
     } finally {
@@ -208,15 +208,45 @@ export default function Working() {
   }
 
   return (
-    <div className="wh-page">
-      <div className="wh-header wh-header-sticky">
-        <div className="wh-header-left">
-          <h1 className="wh-title">Working Hours</h1>
-          <p className="wh-subtitle">
-            Weekly schedule applies by default. Use Specific Dates to override a single day.
-          </p>
+    <div className="wh-shell">
+      <div className="wh-page">
+        <header className="wh-topbar">
+          <div className="wh-topbar-main">
+            <div className="wh-titlewrap">
+              <h1 className="wh-title">Working Hours</h1>
+              <p className="wh-subtitle">
+                Weekly schedule applies by default. Use Specific Dates to override a single day.
+              </p>
+            </div>
 
-          <div className="wh-toolbar">
+            <div className="wh-actions" role="group" aria-label="Save controls">
+              {dirty ? (
+                <span className="wh-pill wh-pill-warn">Unsaved</span>
+              ) : (
+                <span className="wh-pill wh-pill-ok">Saved</span>
+              )}
+
+              <button
+                className="wh-btn wh-btn-ghost"
+                type="button"
+                onClick={handleDiscard}
+                disabled={saving || loading || !dirty}
+              >
+                Discard
+              </button>
+
+              <button
+                className="wh-btn wh-btn-primary"
+                type="button"
+                onClick={handleSave}
+                disabled={saving || loading || !dirty}
+              >
+                {saving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
+
+          <div className="wh-topbar-controls">
             <label className="wh-field">
               <span className="wh-label">Timezone</span>
               <select
@@ -233,71 +263,51 @@ export default function Working() {
               </select>
             </label>
           </div>
-        </div>
 
-        <div className="wh-header-actions" role="group" aria-label="Save controls">
-          {dirty ? <span className="wh-badge-warn">Unsaved changes</span> : <span className="wh-badge-ok">All changes saved</span>}
-
-          <button
-            className="wh-btn wh-btn-secondary"
-            type="button"
-            onClick={handleDiscard}
-            disabled={saving || loading || !dirty}
-          >
-            Discard
-          </button>
-
-          <button
-            className="wh-btn"
-            type="button"
-            onClick={handleSave}
-            disabled={saving || loading || !dirty}
-          >
-            {saving ? "Saving..." : "Save changes"}
-          </button>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="wh-skeleton">
-          <div className="wh-skeleton-line" />
-          <div className="wh-skeleton-line" />
-          <div className="wh-skeleton-line" />
-        </div>
-      ) : null}
-
-      {!loading && (msg || err) ? (
-        <div
-          className={`wh-alert ${err ? "wh-alert-error" : "wh-alert-success"}`}
-          role="status"
-          aria-live="polite"
-        >
-          {err || msg}
-        </div>
-      ) : null}
-
-      <div className="wh-grid">
-        <section className="wh-card" aria-labelledby="weekly-title">
-          <div className="wh-card-head">
-            <div>
-              <h2 className="wh-card-title" id="weekly-title">Weekly Schedule</h2>
-              <div className="wh-card-note">Applies unless overridden</div>
+          {!loading && (msg || err) ? (
+            <div className={`wh-alert ${err ? "wh-alert-error" : "wh-alert-success"}`} role="status" aria-live="polite">
+              {err || msg}
             </div>
+          ) : null}
+        </header>
+
+        {loading ? (
+          <div className="wh-loading">
+            <div className="wh-skel" />
+            <div className="wh-skel" />
+            <div className="wh-skel wh-skel-small" />
           </div>
+        ) : null}
 
-          <WeeklyWorkingHours value={week} onChange={setWeek} timeOptions={timeOptions} />
-        </section>
-
-        <section className="wh-card" aria-labelledby="overrides-title">
-          <div className="wh-card-head">
-            <div>
-              <h2 className="wh-card-title" id="overrides-title">Specific Dates</h2>
-              <div className="wh-card-note">Overrides the weekly schedule for a date</div>
+        <div className="wh-grid">
+          <section className="wh-card" aria-labelledby="weekly-title">
+            <div className="wh-card-head">
+              <div className="wh-card-head-left">
+                <h2 className="wh-card-title" id="weekly-title">
+                  Weekly Schedule
+                </h2>
+                <div className="wh-card-note">Applies unless overridden</div>
+              </div>
             </div>
-          </div>
+            <div className="wh-card-body">
+              <WeeklyWorkingHours value={week} onChange={setWeek} timeOptions={timeOptions} />
+            </div>
+          </section>
 
-          <DateOverrides value={overrides} onChange={setOverrides} timeOptions={timeOptions} />
-        </section>
+          <section className="wh-card" aria-labelledby="overrides-title">
+            <div className="wh-card-head">
+              <div className="wh-card-head-left">
+                <h2 className="wh-card-title" id="overrides-title">
+                  Specific Dates
+                </h2>
+                <div className="wh-card-note">Overrides the weekly schedule for a date</div>
+              </div>
+            </div>
+            <div className="wh-card-body">
+              <DateOverrides value={overrides} onChange={setOverrides} timeOptions={timeOptions} />
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
