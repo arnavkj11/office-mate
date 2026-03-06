@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, status, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.agent import run_agent
+from app.core.config import FRONTEND_ORIGIN
 from app.api.routes_working_hours import router as working_hours_router
 from app.api.routes_users import router as users_router
 from app.api.routes_businesses import router as businesses_router
@@ -17,14 +18,17 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 app = FastAPI(title="OfficeMate API")
 
+_cors_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+]
+if FRONTEND_ORIGIN and FRONTEND_ORIGIN not in _cors_origins:
+    _cors_origins.append(FRONTEND_ORIGIN)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

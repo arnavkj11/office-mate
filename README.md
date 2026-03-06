@@ -164,3 +164,64 @@ npm run dev
 - Frontend: `http://localhost:5173`
 - API: `http://localhost:8000`
 - Health: `GET /health`
+
+---
+
+## Deploy frontend on Vercel
+
+### 1. Push your code
+
+Ensure your project is in a Git repo (GitHub, GitLab, or Bitbucket) and push the latest code.
+
+### 2. Create a Vercel project
+
+1. Go to **[vercel.com/new](https://vercel.com/new)**.
+2. **Import** your repository (e.g. connect GitHub and select the `office-mate` repo).
+3. Before deploying, set the **Root Directory**:
+   - Click **Edit** next to “Root Directory”.
+   - Enter `frontend` and click **Continue**.
+
+### 3. Build settings
+
+Vercel should detect Vite. Confirm:
+
+- **Framework Preset:** Vite  
+- **Build Command:** `npm run build`  
+- **Output Directory:** `dist`  
+- **Install Command:** `npm install`
+
+(Defaults are usually correct.)
+
+### 4. Environment variables
+
+In the same “Configure Project” screen (or later under **Settings → Environment Variables**), add:
+
+| Name | Value | Notes |
+|------|--------|--------|
+| `VITE_API_BASE` | Your backend URL | e.g. `https://your-api.example.com` (or keep empty for now and use `http://localhost:8000` until the backend is deployed) |
+| `VITE_AWS_REGION` | AWS region | e.g. `us-east-1` |
+| `VITE_COG_USER_POOL_ID` | Cognito User Pool ID | From AWS Cognito |
+| `VITE_COG_CLIENT_ID` | Cognito App client ID | From AWS Cognito |
+
+These are baked into the build, so change them in Vercel and **redeploy** if you update the backend URL or Cognito.
+
+### 5. Deploy
+
+Click **Deploy**. Vercel will install dependencies, run `npm run build`, and serve the app. You’ll get a URL like `https://officemate-xxx.vercel.app`.
+
+### 6. Cognito callback URLs
+
+In **AWS Cognito → User Pool → App integration → App client**:
+
+- Add your Vercel URL to **Allowed callback URLs** (e.g. `https://officemate-xxx.vercel.app/`).
+- Add the same URL to **Allowed sign-out URLs**.
+- Save changes.
+
+### 7. (Optional) CLI deploy
+
+```bash
+cd frontend
+npx vercel
+```
+
+When prompted, set the project root to `frontend` if needed, and add the env vars when asked or in the Vercel dashboard.
