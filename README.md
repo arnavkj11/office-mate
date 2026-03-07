@@ -165,32 +165,6 @@ npm run dev
 - API: `http://localhost:8000`
 - Health: `GET /health`
 
-### Docker
-
-Build and run the backend as a container:
-
-```bash
-cd backend
-docker build -t officemate-backend .
-docker run -p 8000:8000 --env-file .env officemate-backend
-```
-
-For production, pass env vars explicitly (don't bake `.env` into the image):
-
-```bash
-docker run -p 8000:8000 \
-  -e COG_REGION=us-east-1 \
-  -e COG_USER_POOL_ID=... \
-  -e COG_CLIENT_ID=... \
-  -e AWS_REGION=us-east-1 \
-  -e DDB_TABLE_USERS=officemate_users \
-  -e DDB_TABLE_BUSINESSES=officemate_businesses \
-  -e DDB_TABLE_APPTS=officemate_appointments \
-  -e OPENAI_API_KEY=... \
-  -e FRONTEND_ORIGIN=https://your-frontend.vercel.app \
-  officemate-backend
-```
-
 ---
 
 ## Deploy frontend on Vercel
