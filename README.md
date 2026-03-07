@@ -225,3 +225,82 @@ npx vercel
 ```
 
 When prompted, set the project root to `frontend` if needed, and add the env vars when asked or in the Vercel dashboard.
+
+---
+
+## Deploy backend on AWS App Runner
+
+The backend uses **AWS App Runner**, which builds and runs your FastAPI app from the repo. Your frontend is at **https://office-mate-three.vercel.app/**.
+
+### 1. Push `apprunner.yaml`
+
+Ensure `backend/apprunner.yaml` is in the repo. It configures Python, build, and run commands for App Runner.
+
+### 2. Create an App Runner service
+
+1. Open **[AWS App Runner console](https://console.aws.amazon.com/apprunner)** and select your region (e.g. `us-east-1`).
+2. Click **Create an App Runner service**.
+3. **Source and deployment:**
+   - **Repository type:** Source code repository
+   - **Provider:** GitHub (or Bitbucket if you use it)
+   - If first time: **Add new** and authorize GitHub
+   - **Repository:** Select the `office-mate` repo
+   - **Branch:** `main` (or your default)
+   - **Source directory:** `backend`
+   - **Deployment:** Automatic (or Manual if you prefer)
+4. Click **Next**.
+
+### 3. Configure build
+
+1. **Configuration file:** Use a configuration file
+2. **Configuration file path:** `apprunner.yaml` (relative to source directory)
+3. Click **Next**.
+
+### 4. Configure service
+
+1. **Service name:** e.g. `officemate-api`
+2. **Port:** 8000 (should match `apprunner.yaml`)
+3. Click **Next**.
+
+### 5. Environment variables
+
+Under **Environment variables** (or in the **Security** step), add:
+
+| Name | Value |
+|------|--------|
+| `COG_REGION` | e.g. `us-east-1` |
+| `COG_USER_POOL_ID` | Cognito User Pool ID |
+| `COG_CLIENT_ID` | Cognito App client ID |
+| `AWS_REGION` | Same as `COG_REGION` |
+| `DDB_TABLE_USERS` | `officemate_users` (or your table name) |
+| `DDB_TABLE_BUSINESSES` | `officemate_businesses` |
+| `DDB_TABLE_APPTS` | `officemate_appointments` |
+| `OPENAI_API_KEY` | Your OpenAI API key |
+| `FRONTEND_ORIGIN` | `https://office-mate-three.vercel.app` |
+
+### 6. IAM role for AWS access
+
+App Runner needs an IAM role to call DynamoDB, Cognito (JWKS), and optionally SES. Either:
+
+- Use an **existing role** with `dynamodb:*`, `ses:SendEmail`, and permissions to read Cognito JWKS.
+- Or **create a role** for the service with:
+  - `AmazonDynamoDBFullAccess` (or scoped policies)
+  - `AmazonSESFullAccess` (if using SES)
+  - Cognito read (e.g. `cognito-idp:DescribeUserPool`) and ability to fetch public JWKS
+
+### 7. Create and deploy
+
+Click **Create and deploy**. Wait until **Status** is **Running**.
+
+### 8. Get the service URL
+
+Copy the **Default domain** (e.g. `https://xxxxx.us-east-1.awsapprunner.com`).
+
+### 9. Wire frontend to backend
+
+1. In **Vercel → Project → Settings → Environment Variables**, set `VITE_API_BASE` to the App Runner URL.
+2. Redeploy the frontend so the new value is used.
+
+### 10. Update Cognito CORS (if needed)
+
+The backend already uses `FRONTEND_ORIGIN` for CORS. No extra Cognito CORS changes needed if you set `FRONTEND_ORIGIN` correctly.
