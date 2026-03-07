@@ -228,6 +228,40 @@ When prompted, set the project root to `frontend` if needed, and add the env var
 
 ---
 
+## Deploy backend on Railway
+
+The repo includes [`railway.toml`](railway.toml) to force a Python build/install from `backend/requirements.txt` and start FastAPI from `backend`.
+
+### 1. Create Railway service
+
+1. In Railway, create a new project from this GitHub repo.
+2. For the backend service, keep the service at repo root (the included `railway.toml` handles backend paths).
+3. Trigger a deploy.
+
+### 2. Set backend environment variables
+
+Set these in Railway service variables:
+
+| Name | Value |
+|------|--------|
+| `COG_REGION` | e.g. `us-east-1` |
+| `COG_USER_POOL_ID` | Cognito User Pool ID |
+| `COG_CLIENT_ID` | Cognito App client ID |
+| `AWS_REGION` | Same as `COG_REGION` |
+| `DDB_TABLE_USERS` | `officemate_users` (or your table name) |
+| `DDB_TABLE_BUSINESSES` | `officemate_businesses` |
+| `DDB_TABLE_APPTS` | `officemate_appointments` |
+| `OPENAI_API_KEY` | Your OpenAI API key |
+| `FRONTEND_ORIGIN` | Your Vercel frontend URL |
+
+### 3. Wire frontend to Railway URL
+
+1. Copy Railway backend URL.
+2. In Vercel project settings, set `VITE_API_BASE` to that URL.
+3. Redeploy frontend.
+
+---
+
 ## Deploy backend on AWS App Runner
 
 The backend uses **AWS App Runner**, which builds and runs your FastAPI app from the repo. Your frontend is at **https://office-mate-three.vercel.app/**.
